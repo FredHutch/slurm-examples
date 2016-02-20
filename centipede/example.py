@@ -71,7 +71,7 @@ def parse_arguments():
     
 if __name__=="__main__":
     args = parse_arguments()
-    if args.phase == 'run' and not args.id:
+    if args.phase == 'run' and args.id == None:
         print("Not enough arguments. 'run' needs a second argument 'id'")
         sys.exit(1)    
     sys.exit(main())
