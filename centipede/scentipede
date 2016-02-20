@@ -20,9 +20,9 @@ JOBNAME='myJob'            # change for every analysis you run (2nd arg)
 MAILDOM='@fredhutch.org'   # your email domain (for receiving error messages)
 MAXARRAYSIZE=10          # set to 0 if you are not using slurm job arrays
 MYSCRATCH="./scratch/${JOBNAME}"  # location of your persistent scratch dir
-PARTITION='boneyard'        # the queue on your cluster that allows short jobs
+PARTITION='campus'        # the queue on your cluster that allows short jobs
 RESULTDIR="./result/${JOBNAME}"  # This is a folder in permanent storage
-SCRIPT='./example.R'       # your code as (R or Python) script (1st arg)
+SCRIPT='./example.py'       # your code as (R or Python) script (1st arg)
 STEPSIZE=2                 # number of consequtive loops in SCRIPT to run in
                            # the same job / node (increase for short jobs)
                            
@@ -44,6 +44,8 @@ mkdir -p "${RESULTDIR}"
 export MYSCRATCH           # set static vars globally so cluster jobs launched
 export RESULTDIR           # from this script can read them as an environment
 export STEPSIZE            # variables
+
+echo "using $SCRIPT with args $@..." 
 
 # run the part below if $RETRYFAILED environment var is not set or ""
 if [[ -z $RETRYFAILED ]]; then 

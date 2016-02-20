@@ -12,7 +12,7 @@ TASKID = int(os.getenv('SLURM_ARRAY_TASK_ID', 0))
 def main():
 
     # number if iterations in a loop, typically the lenth of a list,array or dictionary
-    mylistsize=500
+    mylistsize=33
 
     # get the list size #####
     if args.phase == 'listsize':
@@ -26,8 +26,9 @@ def main():
     # execute parallel job ############################################
     if args.phase == 'run':
         inputdata = load(op.join(MYSCRATCH,'input.dat'))
+        print("id:%s TASKID:%s STEPSIZE:%s" % (args.id, TASKID, STEPSIZE))
         for i in range(args.id+TASKID,args.id+TASKID+STEPSIZE-1):
-            print(i, TASKID, STEPSIZE)
+            print("i:",i)
             myrnd = random.randint(i, 10000)
             # save to a temp file and then rename it as last action !
             save(myrnd, op.join(MYSCRATCH,'run','%s-run.dat.tmp' % i))
@@ -37,9 +38,10 @@ def main():
     # merge job ########################
     if args.phase == 'merge':
         mysum = load(op.join(MYSCRATCH,'input.dat'))
+        print("id:%s TASKID:%s STEPSIZE:%s" % (args.id, TASKID, STEPSIZE))
         for i in range(1,mylistsize):
-            print(i, TASKID, STEPSIZE)
-            outputdata = load(op.join(MYSCRATCH,'run','%s-output.dat' % i))
+            print("i:",i)
+            outputdata = load(op.join(MYSCRATCH,'run','%s-run.dat' % i))
             mysum = mysum + outputdata
         print("result: ", mysum)
         save(mysum, op.join(RESULTDIR,'result.dat'))
