@@ -109,17 +109,17 @@ if [[ -z $RETRYFAILED ]]; then
     if ! [[ "$0" = /* ]]; then
         thisscript=$(pwd)/$0
     fi
-    # submit job that waits for parallel jobs to finish and then re-submits failed jobs (4h)
+    # submit control job that waits for parallel jobs to finish and then re-submits failed jobs (4h)
     echo "submitting control job with args '$@' that waits and resubmits failed jobs..."
     sbatch --dependency=singleton --job-name=${JOBNAME} \
                --mail-type=FAIL --mail-user="${username}${MAILDOM}" --partition=${PARTITION} \
                --output="${MYSCRATCH}/output/${JOBNAME}.correct.%J" --requeue --time=0-4 \
                --wrap="RETRYFAILED=$numjobs ${thisscript} $1 $2 $3 $4 $5 $6 $7 $8 $9"
-fi
 
-
-# run the part below if $RETRYFAILED environment var IS SET
-if [[ -n $RETRYFAILED ]]; then
+else
+# run the part below if $RETRYFAILED environment var IS SET by previous control job
+# the control job is needed because we cannot submit retry jobs right at the 
+# beginning because we do not yet know which jobs will fail
 
     # re-run all failed jobs where the appropriate output file is missing  (2h)
     # --requeue works only for preempted jobs 

@@ -21,17 +21,16 @@ if(length(args) < 1){
 # number if iterations in a loop, typically the lenth of a matrix,array,dataframe or vector
 mylistsize<-33
 
-
-# get the list size #########
-if (args[1] == 'listsize') {
-    cat(mylistsize)
-}
-
 # execute prepare job ##################
 if (args[1] == 'prepare') {
     inputdata<-1000000 # some number
     save(inputdata, file=paste0(MYSCRATCH,'/input.dat'))
     print(paste0('initial value saved to: ', MYSCRATCH, '/input.dat'))
+}
+
+# get the list size, perhaps based on prepare phase #########
+if (args[1] == 'listsize') {
+    cat(mylistsize)
 }
 
 # execute parallel job #################################################
