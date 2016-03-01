@@ -27,7 +27,7 @@ def main():
     if args.phase == 'run':
         inputdata = load(op.join(MYSCRATCH,'input.dat'))
         print("id:%s TASKID:%s STEPSIZE:%s" % (args.id, TASKID, STEPSIZE))
-        for i in range(args.id+TASKID,args.id+TASKID+STEPSIZE-1):
+        for i in range(args.id+TASKID,args.id+TASKID+STEPSIZE):
             print("i:",i)
             myrnd = random.randint(i, 10000)
             # save to a temp file and then rename it as last action !
@@ -64,7 +64,7 @@ def parse_arguments():
         description="a little sample script for for running python code  " + \
             "on a HPC cluster. It requires one of the arguments  'listsize', " + \
             "'prepare', 'run <itemsize>', 'merge'.")
-    parser.add_argument("phase", help="the phase to run ")    
+    parser.add_argument("phase", help="the phase to run ")
     parser.add_argument( 'id', type=int, default=None, nargs='?',
         help="an id required for the run phase")    
     return parser.parse_args()
