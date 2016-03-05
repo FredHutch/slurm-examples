@@ -1,16 +1,20 @@
-# Job Arrays 
+# Running an Analysis using 40000 cluster jobs 
 
-![Job Arrays](.images/job_array.png)
+- A Scientist 
+- I need to manually re-run failed jobs before I can merge the outputs 
+  of all jobs into a single result file
+- I *cannot use the restart* queue because each of my jobs runs too long
+  and is often killed by a higher priority job 
 
-- do not submit moe than 5000 jobs to gimzo
-- to run 40000 jobs submit 40 job arrays with 1000 elements each
-
----
 
 # What is slowing us down?
 
-- jobs require input files that need to be prepared (wait for prep, then 
+- jobs require input files that *need to be prepared* (wait for prep, then 
   start the real job)
+- I need to manually re-run failed jobs before I can merge the outputs 
+  of all jobs into a single result file
+- I *cannot use the restart* queue because each of my jobs runs too long
+  and is often killed by a higher priority job 
 
 ---
 
@@ -60,15 +64,15 @@
 
 ---
 
-scentipede can take 2 arguments, SCRIPT and JOBNAME.
+scentipede can take 2 arguments, SCRIPT and ANALYSIS.
 
     !bash
-    JOBNAME='myJob'      # change for every analysis you run (2nd arg)
+    ANALYSIS='myJob'      # change for every analysis you run (2nd arg)
     MAILDOM='@fhcrc.org' # your email domain (for receiving error msg)
     MAXARRAYSIZE=1000    # set to 0 if you are not using slurm job arrays
-    MYSCRATCH="./scratch/${JOBNAME}"  # location of your scratch dir
+    MYSCRATCH="./scratch/${ANALYSIS}"  # location of your scratch dir
     PARTITION='restart'  # a queue on your cluster for very short jobs
-    RESULTDIR="./result/${JOBNAME}"  # A permanent storage location
+    RESULTDIR="./result/${ANALYSIS}"  # A permanent storage location
     SCRIPT='./example.R' # your code as (R or Python) script (1st arg)
     STEPSIZE=2           # number of consequtive loops in SCRIPT to run in
                          # the same job / node (increase for short jobs)
@@ -135,6 +139,16 @@ Before and during implementation, we kept the following goals in mind:
   change such as a loop interator, etc
   
 ---
+
+# Job Arrays 
+
+![Job Arrays](.images/job_array.png)
+
+- do not submit more than 5000 jobs to gimzo, squeue gets sluggish
+- to run 40000 jobs submit 40 job arrays with 1000 elements each
+
+---
+
 
 
 # Save to tmp file and rename !

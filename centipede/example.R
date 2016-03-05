@@ -15,7 +15,7 @@ TASKID[is.na(TASKID)] <- 0
 # get command lines arguments
 args <- commandArgs(trailingOnly = TRUE)
 if(length(args) < 1){
-    stop("Not enough arguments. Please start with args 'listsize', 'prepare', 'run <itemsize>', 'merge'")
+    stop("Not enough arguments. Please use args 'listsize', 'prepare', 'run <itemsize>' or 'merge'")
 }
 
 # number if iterations in a loop, typically the lenth of a matrix,array,dataframe or vector
