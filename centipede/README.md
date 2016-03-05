@@ -1,28 +1,11 @@
 # Job Arrays 
 
-| Jobs   |
-|--------|
-| Job1   |
-| Job2   |
-| Job3   |
-| Job4   |
-
- Job Arrays |  ArrID 1 |  ArrID 2 
- -----------|----------|---------
- Arr1       |  Job1    |  Job2    
- Arr2       |  Job2    |  Job4    
-
-First Header | Second Header
------------- | -------------
-Content from cell 1 | Content from cell 2
-Content in the first column | Content in the second column
-
+![Job Arrays](.images/job_array.png)
 
 - do not submit moe than 5000 jobs to gimzo
 - to run 40000 jobs submit 40 job arrays with 1000 elements each
 
 ---
-
 
 # What is slowing us down?
 
