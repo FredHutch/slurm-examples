@@ -1,10 +1,36 @@
-# Running an Analysis using 40000 cluster jobs 
+# Running an Analysis using 40,000 cluster jobs 
 
-- A Scientist 
-- I need to manually re-run failed jobs before I can merge the outputs 
-  of all jobs into a single result file
-- I *cannot use the restart* queue because each of my jobs runs too long
-  and is often killed by a higher priority job 
+- A Scientist asked how he can accerlate his R script
+- The script had a loop with 40k iterations, each running ~ 10m
+- would run ~270 days using a single CPU
+- a good case for our restart queue if we can make it run parallel
+
+---
+
+# The restart queue 
+
+- access to  > 1000 cores  
+- Jobs are only running if there are enough free resources 
+- jobs get killed if not enough resources in priority queue (campus)
+- the average run time of jobs that were killed is more than 1h 
+- jobs should be short but not too short, 15-30  min ideal
+
+---
+
+# Definitions
+
+- **Job** :	one script submitted to an HPC cluster 
+
+- **Analysis** : an experiment has one or more Jobs 
+
+- **Loop** : set of instructions that need to be repeated X times 
+  (X must be a known number)
+
+- **Iteration** : running through a loop a single time
+
+- **Stepsize** : number of consecutive iterations through a loop
+
+---
 
 
 # What is slowing us down?
@@ -16,6 +42,73 @@
 - I *cannot use the restart* queue because each of my jobs runs too long
   and is often killed by a higher priority job 
 
+---
+
+# The problem 
+
+	!R
+	# In the loop below, 'i' indexes genes.
+	# To parallelize, we'd break up range of 'i' into 1:10, 11:20, etc.
+	for (i in 1:dim(LGG.GBM.mut)[1]) {
+		print(paste(i, Sys.time(), sep="   "))		
+		tmpMutTbl <- LGG.GBM.mut[-i , ]
+		.
+		.
+		D.after <- as.matrix(as.dist(max(SNV.CNV) - SNV.CNV))
+		D <- sum(abs(D.before - D.after))		
+		effectLOO <- c(effectLOO, D)		
+	}
+
+- loops over many genes sequentially on a single compute core 
+- collects results in variable effectLOO, but does not save it
+- running for 270 days before saving your data? 
+
+--- 
+
+# how long does a loop take 
+
+with a STEPSIZE of 1 
+	
+	!R
+	for (i in 1:1) {   ~ 10 min
+	for (i in 2:2) {   ~ 10 min
+	for (i in 3:3) {   ~ 10 min
+	for (i in 4:4) {   ~ 10 min
+	for (i in 5:5) {   ~ 10 min
+	for (i in 6:6) {   ~ 10 min
+	
+.. or with a STEPSIZE of 2
+	
+	!R
+	for (i in 1:2) {   ~ 20 min
+	for (i in 3:4) {   ~ 20 min
+	for (i in 5:6) {   ~ 20 min
+	
+- a STEPSIZE of 2 : 10 min * 2 iterations = 20 min compute time
+- not efficient if a job waited 5 min but then ran only 2 min
+	
+---
+
+# saving the state of each loop
+
+    !R
+    # begin loop
+    {	
+		D <- sum(abs(D.before - D.after))		
+		effectLOO <- c(effectLOO, D)		
+	}
+
+	# save each variable to disk instead of incrementing 
+	
+	# begin loop
+	{
+	    save(D.after, file=paste0(scratch,'/',i,"-D.after.RData.tmp"))
+        file.rename(paste0(scratch,'/',i,"-D.after.RData.tmp"),
+		            paste0(scratch,'/',i,"-D.after.RData"))
+	}
+	
+- save into a tmp file first and then rename it. Why?
+	
 ---
 
 # Centipede Slurm example
@@ -94,15 +187,6 @@ Before and during implementation, we kept the following goals in mind:
 ---
 
 # meh
-
----
-
-# The restart queue 
-
-- access to  > 1000 cores  
-- Jobs are only running if there are enough free resources 
-- jobs get killed if not enough resources in priority queue (campus)
-- the average run time of jobs that were killed is more than 1h 
 
 ---
 

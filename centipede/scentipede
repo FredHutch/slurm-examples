@@ -16,7 +16,7 @@
 
 ##################### Change these constants ##############################
 
-ANALYSIS='myAnalsis'       # change for every analysis you run (2nd arg)
+ANALYSIS='myAnalysis'      # change for every analysis you run (2nd arg)
 MAILDOM='@fredhutch.org'   # your email domain (for receiving error messages)
 MAXARRAYSIZE=1000          # set to 0 if you are not using slurm job arrays
 MYSCRATCH="./scratch/${ANALYSIS}"  # location of your persistent scratch dir
