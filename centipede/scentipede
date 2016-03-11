@@ -64,12 +64,13 @@ if [[ -z $RETRYFAILED ]]; then
 
     # Running multiple jobs (array or standard), pass 'run' and 'id' to each SCRIPT (1h each)
     if [[ $MAXARRAYSIZE -gt 1 ]]; then
-        # running array jobs
+        # dividing job list into multiple job arrays
         numjobs=$((${listsize}/${MAXARRAYSIZE}+1))
         arrid=0
         arrupper=$MAXARRAYSIZE
         for i in $(seq 1 $numjobs); do
             if [[ $i -eq $numjobs ]]; then
+			    # set last arraysize to remainder 
                 arrupper=$((${listsize}-${arrid}))
             fi
             echo "submitting ${SCRIPT} run in ${MYSCRATCH}"

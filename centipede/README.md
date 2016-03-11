@@ -255,16 +255,23 @@ to start the python example without editing the script, run it like this:
 # The 'run' phase 
 
 	!bash
-	echo "submitting ${SCRIPT} run in ${MYSCRATCH}"
-	echo "with ${STEPSIZE} ${arrid} dependent on ${waitforjobs}..."
-	sbatch --array=1-${arrupper}:${STEPSIZE} --job-name=${ANALYSIS} \
-		   --partition=${PARTITION} --dependency=afterok:${waitforjobs} \
+	# dividing job list into multiple job arrays
+	numjobs=$((${listsize}/${MAXARRAYSIZE}+1))
+	arrupper=$MAXARRAYSIZE
+	for i in $(seq 1 $numjobs); do
+	  if [[ $i -eq $numjobs ]]; then
+	    # set last arraysize to remainder 
+		arrupper=$((${listsize}-${arrid}))
+	  fi
+	  echo "submitting ${SCRIPT} run in ${MYSCRATCH}"
+	  echo "with ${STEPSIZE} ${arrid} dependent on ${waitforjobs}..."
+	  sbatch --dependency=afterok:${waitforjobs} --job-name=${ANALYSIS} \
+		   --partition=${PARTITION} --array=1-${arrupper}:${STEPSIZE} \
 		   --mail-type=FAIL --mail-user="${username}${MAILDOM}" --time=0-1 \
 		   --output="${MYSCRATCH}/out/${ANALYSIS}.run.${arrid}_%a_%A.%J" \
 		   --wrap="${SCRIPT} run ${arrid} $3 $4 $5 $6 $7 $8 $9" --requeue
-		   
-
-		   
+	  arrid=$((${arrid}+${MAXARRAYSIZE}))
+	done
 ---
 
 # Job Arrays 
@@ -275,7 +282,6 @@ to start the python example without editing the script, run it like this:
 - to run 40000 jobs submit 40 job arrays with 1000 elements each
 
 ---
-
 
 
 # Save to tmp file and rename !
@@ -291,4 +297,50 @@ to start the python example without editing the script, run it like this:
 
 - renaming ist very fast, interuption unlikely
  
+--- 
+
+# a job submitting more jobs
+    
+	!bash
+    echo "submitting control job with args '$@' "
+	echo "that waits and resubmits failed jobs..."
+    sbatch --dependency=singleton --job-name=${ANALYSIS} \
+	       --partition=${PARTITION} --requeue --time=0-4 \
+           --mail-type=FAIL --mail-user="${username}${MAILDOM}" \
+           --output="${MYSCRATCH}/out/${ANALYSIS}.correct.%J" \
+           --wrap="RETRYFAILED=$numjobs ${thisscript} $1 $2 $3 ...
  
+
+---
+ 
+# rerun failed jobs 
+
+	!bash
+    # re-run all failed jobs where the appropriate output file is missing
+    # --requeue works only for preempted jobs 
+    for i in $(seq 1 $RETRYFAILED); do
+        id=$((${i}*${STEPSIZE}-${STEPSIZE}+1))
+        if ! [[ -f "${MYSCRATCH}/run/${i}-run.dat" ]]; then
+            echo "re-submitting ${SCRIPT} run ${id}"
+            sbatch --dependency=singleton --job-name=${ANALYSIS} \
+			       --partition=${PARTITION} --requeue --time=0-2 \
+                   --mail-type=FAIL --mail-user="${username}${MAILDOM}" \
+                   --output="${MYSCRATCH}/out/${ANALYSIS}.run2.${i}.%J" \
+                   --wrap="${SCRIPT} run ${id} $3 $4 $5 $6 $7 $8 $9"
+        fi
+    done
+
+
+--- 
+
+# the 'merge' phase
+
+	!bash
+    echo "submitting ${SCRIPT} merge ${listsize}..."
+    sbatch --dependency=singleton --job-name=${ANALYSIS} \
+	       --partition=${PARTITION} --requeue --time=0-5 \
+           --mail-type=END,FAIL --mail-user="${username}${MAILDOM}" \
+           --output="${MYSCRATCH}/out/${ANALYSIS}.merge.%J" \
+           --wrap="${SCRIPT} merge ${listsize} $3 $4 $5 $6 $7 $8 $9"
+
+		   
