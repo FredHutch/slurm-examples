@@ -4,6 +4,7 @@
 - The script had a loop with 40k iterations, each running ~ 10m
 - would run ~270 days using a single CPU
 - a good case for our restart queue if we can make it run parallel
+- This readme is also a [presentation](http://fredhutch.github.io/slurm-examples)
 
 ---
 
@@ -29,18 +30,6 @@
 - **Iteration** : running through a loop a single time
 
 - **Stepsize** : number of consecutive iterations through a loop
-
----
-
-
-# What is slowing us down?
-
-- jobs require input files that *need to be prepared* (wait for prep, then 
-  start the real job)
-- I need to manually re-run failed jobs before I can merge the outputs 
-  of all jobs into a single result file
-- I *cannot use the restart* queue because each of my jobs runs too long
-  and is often killed by a higher priority job 
 
 ---
 
@@ -108,6 +97,17 @@ with a STEPSIZE of 1
 	}
 	
 - save into a tmp file first and then rename it. Why?
+
+---
+
+# What is slowing us down?
+
+- jobs require input files that *need to be prepared* (wait for prep, then 
+  start the real job)
+- I need to manually re-run failed jobs before I can merge the outputs 
+  of all jobs into a single result file
+- I *cannot use the restart* queue because each of my jobs runs too long
+  and is often killed by a higher priority job 
 	
 ---
 
@@ -157,11 +157,11 @@ with a STEPSIZE of 1
 
 ---
 
-scentipede can take 2 arguments, SCRIPT and ANALYSIS.
+scentipede can take 2 arguments, SCRIPT and ANALYSIS. Change other constants:
 
     !bash
-    ANALYSIS='myJob'      # change for every analysis you run (2nd arg)
-    MAILDOM='@fhcrc.org' # your email domain (for receiving error msg)
+    ANALYSIS='myProbe1'  # change for every analysis you run (2nd arg)
+    MAILDOM='@fhcrc.org' # your email domain (for error messages)
     MAXARRAYSIZE=1000    # set to 0 if you are not using slurm job arrays
     MYSCRATCH="./scratch/${ANALYSIS}"  # location of your scratch dir
     PARTITION='restart'  # a queue on your cluster for very short jobs
@@ -176,21 +176,21 @@ to start the python example without editing the script, run it like this:
                          
 ---
 
-# Presentation
-- This readme is also a [presentation](http://fredhutch.github.io/slurm-examples)
+# Setup your storage folders 
+
+    !bash
+    ANALYSIS='myProbe1'  # change for every analysis you run (2nd arg)
+    MYSCRATCH="/fh/scratch/delete30/pilastname_f/${ANALYSIS}" 
+    RESULTDIR="/fh/fast/pilastname_f/projectx/${ANALYSIS}"
+
+- edit script scentipede directly 	
+- files in scratch/delete30 get removed 30 days after they have been 
+  touched last 
+- fast file is best suited for result files 
 
 ---
 
-# Configuration
-Before and during implementation, we kept the following goals in mind:
-
----
-
-# meh
-
----
-
-# Environment vars in your code 
+# Environment vars in your R code 
 
     !R
     #! /usr/bin/env Rscript
@@ -207,7 +207,19 @@ Before and during implementation, we kept the following goals in mind:
     STEPSIZE[is.na(STEPSIZE)] <- 1
     TASKID[is.na(TASKID)] <- 0
 
+---
 
+# and in python ...
+
+    !python
+	# get environment variables
+	MYSCRATCH = os.getenv('MYSCRATCH', '.')
+	RESULTDIR = os.getenv('RESULTDIR', '.')
+	STEPSIZE = int(os.getenv('STEPSIZE', 1))
+	TASKID = int(os.getenv('SLURM_ARRAY_TASK_ID', 0))
+
+- getting defaults is slightly simpler
+	
 ---
 
 # Environment vs command line 
@@ -224,6 +236,37 @@ Before and during implementation, we kept the following goals in mind:
   
 ---
 
+# The 'prepare' phase
+
+    !bash
+    echo "submitting ${SCRIPT} prepare in ${MYSCRATCH}..." 
+    sbatch --dependency=singleton --job-name=${ANALYSIS} \
+           --mail-type=FAIL --mail-user="${username}{MAILDOM}" \
+           --output="${MYSCRATCH}/output/${ANALYSIS}.prepare.%J" \
+		   --partition=${PARTITION} --time=0-3 --requeue \
+           --wrap="${SCRIPT} prepare dummy $3 $4 $5 $6 $7 $8 $9"
+
+    # get a colon separated list of job ids (normally a single id)
+	wj=$(squeue -O "%A" -h -u ${username} -n ${ANALYSIS} -S i | tr "\n" ":")
+    waitforjobs=${wj%?} #remove the last character (:) from string
+
+---	
+
+# The 'run' phase 
+
+	!bash
+	echo "submitting ${SCRIPT} run in ${MYSCRATCH}"
+	echo "with ${STEPSIZE} ${arrid} dependent on ${waitforjobs}..."
+	sbatch --array=1-${arrupper}:${STEPSIZE} --job-name=${ANALYSIS} \
+		   --partition=${PARTITION} --dependency=afterok:${waitforjobs} \
+		   --mail-type=FAIL --mail-user="${username}${MAILDOM}" --time=0-1 \
+		   --output="${MYSCRATCH}/out/${ANALYSIS}.run.${arrid}_%a_%A.%J" \
+		   --wrap="${SCRIPT} run ${arrid} $3 $4 $5 $6 $7 $8 $9" --requeue
+		   
+
+		   
+---
+
 # Job Arrays 
 
 ![Job Arrays](.images/job_array.png)
@@ -238,8 +281,7 @@ Before and during implementation, we kept the following goals in mind:
 # Save to tmp file and rename !
 
     !R
-    for (i in (id+TASKID):(id+TASKID+STEPSIZE-1)) {
-        print(paste(i, Sys.time(), TASKID, STEPSIZE, sep="   "))
+    for (..............) {
         myrnd <- sample(i:10000,1,replace=T)        
         # save to a temp file and then rename it as last action !
         save(myrnd, file=paste0(MYSCRATCH,'/run/',i,"-run.dat.tmp"))
@@ -247,6 +289,6 @@ Before and during implementation, we kept the following goals in mind:
                     paste0(MYSCRATCH,'/run/',i,"-run.dat"))
     }
 
- renaming  ist fast, interuption unlikely
+- renaming ist very fast, interuption unlikely
  
  
