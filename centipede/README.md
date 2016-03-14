@@ -4,7 +4,7 @@
 - The script had a loop with 40k iterations, each running ~ 10m
 - would run ~270 days using a single CPU
 - a good case for our restart queue if we can make it run parallel
-- This readme is also a [presentation](http://fredhutch.github.io/slurm-examples)
+- This readme is also a [presentation](http://fredhutch.github.io/slurm-examples/centipede.html)
 
 ---
 
