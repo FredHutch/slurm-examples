@@ -1,0 +1,2610 @@
+<!DOCTYPE html>
+<!--
+  Copyright 2010 Google Inc.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  Original slides: Marcin Wichary (mwichary@google.com)
+  Modifications: Ernest Delgado (ernestd@google.com)
+                 Alex Russell (slightlyoff@chromium.org)
+
+  landslide modifications: Adam Zapletal (adamzap@gmail.com)
+                           Nicolas Perriault (nperriault@gmail.com)
+-->
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Running an Analysis using 40,000 cluster jobs</title>
+    <!-- Styles -->
+    
+    <style type="text/css">
+      h1, h2, h3, h4, h5, h6,
+p, body, header {
+    padding: 0;
+    margin: 0;
+}
+
+div.slide {
+    position: absolute;
+    overflow: hidden;
+    width: 1024px;
+    height: 768px;
+    border-radius: 20px;
+    -moz-border-radius: 20px;
+    -webkit-border-radius: 20px;
+}
+
+p.hr {
+    height: 0px;
+    font-size: 0px !important;
+    display: block;
+    border-bottom: 1px solid #fdf6e3;
+}
+header:not(:only-child) {
+    font-size: 60px;
+    position: absolute;
+    left: 30px;
+    top: 25px;
+    margin: 0;
+    padding: 0;
+}
+header h1, header h2, header h3, header h4, header h5, header h6 {
+    display: inline;
+    font-size: 110%;
+    font-weight: bold;
+    padding: 0;
+    margin: 0;
+}
+header h2:first-child {
+    margin-top: 0;
+}
+footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 5px;
+    text-align: center;
+}
+section, .slide header:only-child h1 {
+    margin-left: 30px;
+    margin-right: 30px;
+    margin-top: 100px;
+    display: block;
+    overflow: hidden;
+}
+section {
+    position: absolute;
+    margin: 0;
+    left: 30px;
+    right: 30px;
+    top: 135px;
+    bottom: 30px;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+}
+section > * {
+    overflow: hidden;
+}
+section img.align-center {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+section img.align-right {
+    display: block;
+    margin-left: auto;
+    margin-right: 0;
+}
+section img.align-left {
+    display: block;
+    margin-right: auto;
+    margin-left: 0;
+}
+a {
+    text-decoration: none;
+    line-height: 110%;
+}
+ul {
+    margin: 0;
+}
+pre, code, tt {
+    font-family: Consolas, 'Bitstream Vera Sans Mono', 'Lucida Console', FreeMono, Courier, monospace;
+}
+pre, .gist .gist-file .gist-data {
+    font-size: 24px;
+    max-height: 485px;
+    padding: 0 0.5em !important;
+    margin: 0;
+    overflow: auto;
+}
+li {
+    padding: 10px 0;
+}
+li pre {
+    margin: 0;
+}
+.slide header:only-child h1 {
+    line-height: 180%;
+    text-align: center;
+    display: table-cell;
+    vertical-align: middle;
+    height: 768px;
+    width: 1024px;
+    font-size: 68px;
+    margin-top: 100px;
+    margin-bottom: 100px;
+}
+aside {
+    display: none;
+}
+aside.source {
+    position: absolute;
+    bottom: 6px;
+    left: 10px;
+}
+aside.page_number {
+    position: absolute;
+    bottom: 6px;
+    right: 10px;
+    text-indent: 10px;
+}
+div.slide p.notes {
+    font-size: 90%;
+}
+img {
+    display: block;
+    margin: 0 auto;
+}
+.center {
+    align-self: center;
+    display: inline-block;
+}
+.large {
+    font-size: 120%;
+}
+.huge {
+    font-size: 150%;
+}
+.qr svg {
+    background: white;
+}
+.qr {
+    text-align: center;
+}
+
+    </style>
+    <style type="text/css" media="print">
+      #toc,
+#help,
+.slide aside,
+.slide .notes,
+.presenter_notes,
+#current_presenter_notes,
+#presenter_note {
+  display: none;
+}
+@page {
+  size: landscape;
+  margin: 0;
+  size: 1124px 852px;
+}
+@page:last {
+  display: none;
+}
+
+
+div.slide-wrapper {
+  padding: 15px;
+}
+div.slide,
+div.slide.current,
+div.slides,
+body,
+div.presentation {
+  position: relative !important;
+  margin: 0 !important;
+}
+div.inner {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+div.slide {
+  page-break-after: avoid;
+}
+div.slide-wrapper:last-of-type .slide {
+  page-break-after: auto;
+}
+
+    </style>
+    <style type="text/css" media="screen, projection">
+      html, body {
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+div.presentation,
+body.presenter_view div#current_presenter_notes section,
+div.slides, body.expose div.slides.nocontext, .presenter_notes {
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    position: absolute;
+    display: block;
+    background: inherit;
+}
+div.slides.nocontext .slide {
+    opacity: 0;
+}
+div.slides.nocontext .slide.future {
+}
+body.expose div.slides.nocontext .slide,
+div.slides.nocontext .slide.current {
+    opacity: 1;
+}
+div.slide {
+    display: none;
+    left: 50%;
+    top: 50%;
+    margin-top: -384px;
+    -webkit-transition: margin 0.3s ease-in, opacity 0.3s ease-in;
+    -moz-transition: margin 0.3s ease-in, opacity 0.3s ease-in;
+    -o-transition: margin 0.3s ease-in, opacity 0.3s ease-in;
+}
+.slide.far-past {
+    display: block;
+    margin-left: -2660px;
+}
+.slide.past {
+    display: block;
+    margin-left: -1586px;
+}
+.slide.current {
+    display: block;
+    margin-left: -512px;
+}
+.slide.future {
+    display: block;
+    margin-left: 562px;
+}
+.slide.far-future {
+    display: block;
+    margin-left: 1636px;
+}
+/* Content */
+
+/* render a nice scrollbar in overflowed pre area's */
+::-webkit-scrollbar-thumb {
+    background: -webkit-gradient(linear, left bottom, left top, from(#eee), to(#fefefe));
+    border: 1px solid #888;
+    -webkit-border-radius: 1ex;
+}
+::-webkit-scrollbar-corner {
+    background: #dedede;
+}
+::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+    background: #888;
+    border-radius: 5px;
+}
+.sidebar {
+    background: white;
+    color: black;
+    border-right: 5px solid #ccc;
+    z-index: 9999999;
+    height: 100%;
+    overflow: hidden;
+    top: 0;
+    position: absolute;
+    display: block;
+    margin: 0;
+    margin-left: -400px;
+    padding: 10px 16px;
+    overflow: auto;
+    -webkit-transition: margin 0.2s ease-in;
+    -moz-transition: margin 0.2s ease-in;
+    -o-transition: margin 0.2s ease-in;
+}
+.sidebar h2 {
+    text-shadow: rgba(0, 0, 0, 0.2) 0 2px 5px;
+    margin: 0 0 16px;
+    padding: 0;
+}
+.sidebar table {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border-collapse: collapse;
+}
+.sidebar table caption {
+    display: none;
+}
+.sidebar tr {
+    margin: 2px 0;
+    border-bottom: 1px solid #ccc;
+}
+.sidebar tr:last-of-type {
+    border-bottom: none;
+}
+.sidebar th {
+    text-align: left;
+    font-weight: normal;
+    max-width: 300px;
+    overflow: hidden;
+}
+.sidebar tr.sub th {
+    text-indent: 20px;
+}
+.sidebar td {
+    text-align: right;
+    min-width: 20px;
+}
+.sidebar a, .sidebar a:hover {
+    display: block;
+    text-decoration: none !important;
+    text-shadow: none !important;
+    background: none !important;
+    border-bottom: none;
+    padding: 4px 0;
+}
+.sidebar tr.active {
+    background: #ff0;
+}
+.notes {
+    display: none;
+    padding: 10px;
+    background: #ccc;
+    border-radius: 10px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+}
+
+/* Expose */
+body.expose div.slides {
+    float: left;
+    position: relative;
+    overflow: auto;
+    margin-bottom: 10px;
+}
+body.expose div.slide {
+    display: block;
+    float: left;
+    position: relative;
+    left: auto !important;
+    top: auto !important;
+    margin: 10px !important;
+    -webkit-transition: none;
+    -moz-transition: none;
+    -o-transition: none;
+    -moz-transform: scale(.30, .30);
+    -moz-transform-origin: 0 0;
+    -webkit-transform: scale(.30, .30);
+    -webkit-transform-origin: 0 0;
+    -o-transform: scale(.30, .30);
+    -o-transform-origin: 0 0;
+    -webkit-transition: none;
+    -moz-transition: none;
+    -o-transition: none;
+    cursor: pointer;
+}
+body.expose .slide-wrapper {
+    float: left;
+    position: relative;
+    margin: 2%;
+    width: 300px;
+    height: 233px;
+}
+body.expose .slide footer {
+}
+body.expose .slide .inner {
+}
+body.expose .slide.far-past,
+body.expose .slide.past,
+body.expose .slide.future,
+body.expose .slide.far-future {
+    margin-left: 0;
+}
+/* Presenter Mode */
+
+body.presenter_view div.slide {
+    display: inline;
+    position: absolute;
+    overflow: hidden;
+    -moz-transform: scale(.5, .5);
+    -moz-transform-origin: 0 0;
+    -webkit-transform: scale(.5, .5);
+    -webkit-transform-origin: 0 0;
+    -o-transform: scale(.5, .5);
+    -o-transform-origin: 0 0;
+    margin-top: -384px;
+}
+body.presenter_view .slide.far-past {
+    display: block;
+    margin-left: -1594px;
+}
+body.presenter_view .slide.past {
+    display: block;
+    margin-left: -1049px;
+}
+body.presenter_view .slide.current {
+    display: block;
+    margin-left: -512px;
+    xborder: 8px solid maroon;
+    box-shadow: 0 0 0 15px #dc322f;
+    z-index: 2;
+}
+body.presenter_view .slide.future {
+    display: block;
+    margin-left: 25px;
+    z-index: 1;
+}
+body.presenter_view .slide.far-future {
+    display: block;
+    margin-left: 562px;
+}
+body.presenter_view .slide.none {
+    display: none;
+}
+body.presenter_view div#current_presenter_notes {
+    visibility: visible;
+    display: block;
+    position: fixed;
+    overflow: auto;
+    vertical-align: middle;
+    left: 50%;
+    top: 50%;
+    bottom: 0;
+    margin-left: -475px;
+    margin-top: 20px;
+    z-index: 2;
+    width: 950px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+body.presenter_view div#current_presenter_notes section {
+    display: block;
+    overflow: visible;
+    margin: 60px 30px 0 30px;
+    font-size: 24px;
+}
+body.presenter_view div#current_presenter_notes section p {
+    margin: 0;
+}
+body.presenter_view div#current_presenter_notes h1 {
+    font-size: 50%;
+    display: block;
+}
+div#current_presenter_notes {
+    display: none;
+}
+div.slide div.presenter_notes {
+    display: none;
+}
+#blank {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: black;
+    width: 100%;
+    height: 100%;
+    z-index: 64;
+    display: none;
+}
+
+    </style>
+    <style type="text/css">
+      /* ======================================
+                 FONTS
+====================================== */
+
+h1, h2, h3, h4, h5, h6,
+body, header {
+    font-family: 'Candara', 'Calibri', 'Segoe UI Semilight', 'Corbel', 'Trebuchet Ms', 'Segoe UI', sans-serif;
+}
+section {
+    font: 34px 'Palatino', 'Palatino Linotype', 'URW Palladio L', 'Century Schoolbook L', 'Georgia', serif;
+}
+
+/* ======================================
+                 COLORS
+====================================== */
+/*
+$base03:    #002b36;
+$base02:    #073642;
+$base01:    #586e75;
+$base00:    #657b83;
+$base0:     #839496;
+$base1:     #93a1a1;
+$base2:     #eee8d5;
+$base3:     #fdf6e3;
+$yellow:    #b58900;
+$orange:    #cb4b16;
+$red:       #dc322f;
+$magenta:   #d33682;
+$violet:    #6c71c4;
+$blue:      #268bd2;
+$cyan:      #2aa198;
+$green:     #859900;
+@mixin rebase($rebase03,$rebase02,$rebase01,$rebase00,$rebase0,$rebase1,$rebase2,$rebase3)
+{
+    background-color:$rebase03;
+    color:$rebase0;
+    * { color:$rebase0; }
+    h1,h2,h3,h4,h5,h6 { color:$rebase1; border-color: $rebase0; }
+    a, a:active, a:visited { color: $rebase1; }
+}
+@mixin accentize($accent) {
+    a, a:active, a:visited, code.url { color: $accent; }
+    h1,h2,h3,h4,h5,h6 {color:$accent}
+}
+/ * light is default mode, so pair with general html definition * /
+html, .light { @include rebase($base3,$base2,$base1,$base0,$base00,$base01,$base02,$base03)}
+.dark  { @include rebase($base03,$base02,$base01,$base00,$base0,$base1,$base2,$base3)}
+html * {
+    color-profile: sRGB;
+    rendering-intent: auto;
+}
+*/
+.base03 { color: #002b36; }
+.base02 { color: #073642; }
+.base01 { color: #586e75; }
+.base00 { color: #657b83; }
+.base0 { color: #839496; }
+.base1 { color: #93a1a1; }
+.base2 { color: #eee8d5; }
+.base3 { color: #fdf6e3; }
+.yellow { color: #b58900; }
+.orange { color: #cb4b16; }
+.red { color: #dc322f; }
+.magenta { color: #d33682; }
+.violet { color: #6c71c4; }
+.blue { color: #268bd2; }
+.cyan { color: #2aa198; }
+.green { color: #859900; }
+body {
+    background: #073642;
+    color: #93a1a1;
+}
+footer {
+    color: #93a1a1;
+}
+a, a:hover {
+    color: #268bd2;
+    padding: 0;
+    text-decoration: none;
+    background-color: transparent;
+    background-image: linear-gradient(#268bd2, #268bd2);
+    background-size: 1px 1px;
+    background-repeat: repeat-x;
+    background-position: 0% 95%;
+    text-shadow: -0.03em -0.24ex #fdf6e3, -0.03em -0.27ex #fdf6e3, -0.03em -0.21ex #fdf6e3, 0em -0.21ex #fdf6e3, 0em -0.24ex #fdf6e3, 0em -0.27ex #fdf6e3, 0.06em -0.12ex #fdf6e3, 0.06em -0.15ex #fdf6e3, 0.06em -0.18ex #fdf6e3, 0.15em 0.05ex #fdf6e3, 0.09em -0.27ex #fdf6e3, 0.12em -0.18ex #fdf6e3, 0.09em -0.15ex #fdf6e3, 0.09em -0.12ex #fdf6e3, 0.12em -0.12ex #fdf6e3, 0.09em -0.18ex #fdf6e3, 0.12em -0.15ex #fdf6e3, -0.15em 0.02ex #fdf6e3, -0.09em -0.21ex #fdf6e3, -0.09em -0.27ex #fdf6e3, 0.12em 0ex #fdf6e3, -0.09em -0.24ex #fdf6e3, 0.15em -0.15ex #fdf6e3, 0.06em -0.24ex #fdf6e3, -0.15em -0.21ex #fdf6e3, 0.06em -0.27ex #fdf6e3, -0.15em -0.24ex #fdf6e3, 0.06em -0.21ex #fdf6e3, -0.15em -0.27ex #fdf6e3, -0.09em 0.02ex #fdf6e3, -0.12em -0.21ex #fdf6e3, -0.12em -0.27ex #fdf6e3, -0.09em 0.05ex #fdf6e3, -0.12em -0.24ex #fdf6e3, 0.12em -0.09ex #fdf6e3, -0.12em 0ex #fdf6e3, 0.09em -0.06ex #fdf6e3, 0.09em -0.03ex #fdf6e3, 0.12em -0.03ex #fdf6e3, 0.09em -0.09ex #fdf6e3, 0.09em 0ex #fdf6e3, 0.12em -0.06ex #fdf6e3, -0.03em -0.03ex #fdf6e3, -0.03em -0.06ex #fdf6e3, -0.03em -0.09ex #fdf6e3, -0.03em 0.05ex #fdf6e3, 0.03em -0.09ex #fdf6e3, 0em -0.09ex #fdf6e3, 0.03em -0.03ex #fdf6e3, 0em -0.06ex #fdf6e3, 0em -0.03ex #fdf6e3, 0.03em -0.06ex #fdf6e3, -0.06em 0ex #fdf6e3, 0.03em 0ex #fdf6e3, 0.06em 0ex #fdf6e3, -0.09em -0.15ex #fdf6e3, -0.03em 0ex #fdf6e3, -0.03em -0.12ex #fdf6e3, -0.03em -0.15ex #fdf6e3, -0.03em -0.18ex #fdf6e3, 0.09em 0.02ex #fdf6e3, 0em -0.18ex #fdf6e3, 0.09em 0.05ex #fdf6e3, 0.15em 0.02ex #fdf6e3, 0em -0.15ex #fdf6e3, -0.09em 0ex #fdf6e3, 0em -0.12ex #fdf6e3, 0.06em -0.03ex #fdf6e3, 0.06em -0.06ex #fdf6e3, 0.06em -0.09ex #fdf6e3, 0.03em -0.21ex #fdf6e3, 0em 0.02ex #fdf6e3, 0em 0.05ex #fdf6e3, 0.03em -0.24ex #fdf6e3, 0.03em -0.27ex #fdf6e3, -0.06em 0.05ex #fdf6e3, 0em 0ex #fdf6e3, 0.09em -0.24ex #fdf6e3, 0.09em -0.21ex #fdf6e3, -0.09em -0.18ex #fdf6e3, -0.09em -0.12ex #fdf6e3, -0.03em 0.02ex #fdf6e3, -0.12em -0.12ex #fdf6e3, -0.12em -0.15ex #fdf6e3, -0.12em -0.18ex #fdf6e3, -0.06em -0.09ex #fdf6e3, -0.06em -0.03ex #fdf6e3, -0.06em -0.06ex #fdf6e3, 0.15em -0.27ex #fdf6e3, 0.03em -0.15ex #fdf6e3, 0.03em -0.12ex #fdf6e3, 0.03em -0.18ex #fdf6e3, 0.15em -0.21ex #fdf6e3, 0.03em 0.02ex #fdf6e3, 0.03em 0.05ex #fdf6e3, 0.15em -0.24ex #fdf6e3, 0.15em -0.12ex #fdf6e3, -0.12em 0.02ex #fdf6e3, -0.12em 0.05ex #fdf6e3, -0.12em -0.06ex #fdf6e3, 0.15em -0.18ex #fdf6e3, -0.15em -0.15ex #fdf6e3, -0.06em -0.21ex #fdf6e3, -0.06em -0.24ex #fdf6e3, 0.15em -0.03ex #fdf6e3, -0.06em -0.27ex #fdf6e3, -0.15em 0.05ex #fdf6e3, -0.15em -0.18ex #fdf6e3, 0.15em -0.09ex #fdf6e3, -0.15em 0ex #fdf6e3, 0.15em -0.06ex #fdf6e3, -0.09em -0.06ex #fdf6e3, -0.09em -0.03ex #fdf6e3, -0.09em -0.09ex #fdf6e3, -0.06em 0.02ex #fdf6e3, 0.12em 0.05ex #fdf6e3, 0.12em 0.02ex #fdf6e3, 0.15em 0ex #fdf6e3, -0.06em -0.15ex #fdf6e3, -0.12em -0.09ex #fdf6e3, -0.06em -0.12ex #fdf6e3, 0.06em 0.02ex #fdf6e3, -0.15em -0.12ex #fdf6e3, -0.06em -0.18ex #fdf6e3, -0.12em -0.03ex #fdf6e3, 0.12em -0.21ex #fdf6e3, -0.15em -0.09ex #fdf6e3, 0.12em -0.27ex #fdf6e3, 0.12em -0.24ex #fdf6e3, -0.15em -0.03ex #fdf6e3, 0.06em 0.05ex #fdf6e3, -0.15em -0.06ex #fdf6e3;
+}
+a:hover {
+    color: #2aa198;
+    background-image: linear-gradient(#2aa198, #2aa198);
+}
+.presenter_notes a, .presenter_notes a:hover,
+div#current_presenter_notes a, div#current_presenter_notes a:hover {
+    text-shadow: -0.03em -0.24ex #002b36, -0.03em -0.27ex #002b36, -0.03em -0.21ex #002b36, 0em -0.21ex #002b36, 0em -0.24ex #002b36, 0em -0.27ex #002b36, 0.06em -0.12ex #002b36, 0.06em -0.15ex #002b36, 0.06em -0.18ex #002b36, 0.15em 0.05ex #002b36, 0.09em -0.27ex #002b36, 0.12em -0.18ex #002b36, 0.09em -0.15ex #002b36, 0.09em -0.12ex #002b36, 0.12em -0.12ex #002b36, 0.09em -0.18ex #002b36, 0.12em -0.15ex #002b36, -0.15em 0.02ex #002b36, -0.09em -0.21ex #002b36, -0.09em -0.27ex #002b36, 0.12em 0ex #002b36, -0.09em -0.24ex #002b36, 0.15em -0.15ex #002b36, 0.06em -0.24ex #002b36, -0.15em -0.21ex #002b36, 0.06em -0.27ex #002b36, -0.15em -0.24ex #002b36, 0.06em -0.21ex #002b36, -0.15em -0.27ex #002b36, -0.09em 0.02ex #002b36, -0.12em -0.21ex #002b36, -0.12em -0.27ex #002b36, -0.09em 0.05ex #002b36, -0.12em -0.24ex #002b36, 0.12em -0.09ex #002b36, -0.12em 0ex #002b36, 0.09em -0.06ex #002b36, 0.09em -0.03ex #002b36, 0.12em -0.03ex #002b36, 0.09em -0.09ex #002b36, 0.09em 0ex #002b36, 0.12em -0.06ex #002b36, -0.03em -0.03ex #002b36, -0.03em -0.06ex #002b36, -0.03em -0.09ex #002b36, -0.03em 0.05ex #002b36, 0.03em -0.09ex #002b36, 0em -0.09ex #002b36, 0.03em -0.03ex #002b36, 0em -0.06ex #002b36, 0em -0.03ex #002b36, 0.03em -0.06ex #002b36, -0.06em 0ex #002b36, 0.03em 0ex #002b36, 0.06em 0ex #002b36, -0.09em -0.15ex #002b36, -0.03em 0ex #002b36, -0.03em -0.12ex #002b36, -0.03em -0.15ex #002b36, -0.03em -0.18ex #002b36, 0.09em 0.02ex #002b36, 0em -0.18ex #002b36, 0.09em 0.05ex #002b36, 0.15em 0.02ex #002b36, 0em -0.15ex #002b36, -0.09em 0ex #002b36, 0em -0.12ex #002b36, 0.06em -0.03ex #002b36, 0.06em -0.06ex #002b36, 0.06em -0.09ex #002b36, 0.03em -0.21ex #002b36, 0em 0.02ex #002b36, 0em 0.05ex #002b36, 0.03em -0.24ex #002b36, 0.03em -0.27ex #002b36, -0.06em 0.05ex #002b36, 0em 0ex #002b36, 0.09em -0.24ex #002b36, 0.09em -0.21ex #002b36, -0.09em -0.18ex #002b36, -0.09em -0.12ex #002b36, -0.03em 0.02ex #002b36, -0.12em -0.12ex #002b36, -0.12em -0.15ex #002b36, -0.12em -0.18ex #002b36, -0.06em -0.09ex #002b36, -0.06em -0.03ex #002b36, -0.06em -0.06ex #002b36, 0.15em -0.27ex #002b36, 0.03em -0.15ex #002b36, 0.03em -0.12ex #002b36, 0.03em -0.18ex #002b36, 0.15em -0.21ex #002b36, 0.03em 0.02ex #002b36, 0.03em 0.05ex #002b36, 0.15em -0.24ex #002b36, 0.15em -0.12ex #002b36, -0.12em 0.02ex #002b36, -0.12em 0.05ex #002b36, -0.12em -0.06ex #002b36, 0.15em -0.18ex #002b36, -0.15em -0.15ex #002b36, -0.06em -0.21ex #002b36, -0.06em -0.24ex #002b36, 0.15em -0.03ex #002b36, -0.06em -0.27ex #002b36, -0.15em 0.05ex #002b36, -0.15em -0.18ex #002b36, 0.15em -0.09ex #002b36, -0.15em 0ex #002b36, 0.15em -0.06ex #002b36, -0.09em -0.06ex #002b36, -0.09em -0.03ex #002b36, -0.09em -0.09ex #002b36, -0.06em 0.02ex #002b36, 0.12em 0.05ex #002b36, 0.12em 0.02ex #002b36, 0.15em 0ex #002b36, -0.06em -0.15ex #002b36, -0.12em -0.09ex #002b36, -0.06em -0.12ex #002b36, 0.06em 0.02ex #002b36, -0.15em -0.12ex #002b36, -0.06em -0.18ex #002b36, -0.12em -0.03ex #002b36, 0.12em -0.21ex #002b36, -0.15em -0.09ex #002b36, 0.12em -0.27ex #002b36, 0.12em -0.24ex #002b36, -0.15em -0.03ex #002b36, 0.06em 0.05ex #002b36, -0.15em -0.06ex #002b36;
+}
+code, tt.docutils.literal {
+    color: #6c71c4;
+}
+div.slide {
+    background-color: #fdf6e3;
+    color: #586e75;
+}
+body.expose div.slide:hover {
+    box-shadow: 0 0 0 15px #268bd2;
+}
+body.expose .slide.current {
+    box-shadow: 0 0 0 30px #b58900;
+}
+body.expose .slide.current:hover {
+    box-shadow: 0 0 0 15px #268bd2, 0 0 0 30px #b58900;
+}
+.presenter_notes {
+    background: #002b36;
+}
+@media screen, projection {
+    ::-webkit-scrollbar-thumb {
+        background: #fdf6e3;
+        border-color: #eee8d5;
+    }
+    ::-webkit-scrollbar {
+        background: #eee8d5;
+    }
+    ::-webkit-scrollbar-corner {
+        background: #fdf6e3;
+    }
+}
+.qr svg {
+    box-shadow: inset 0 0 10px #eee8d5;
+}
+div.slides, body.expose div.slides.nocontext,
+body.expose .slide.current,
+body.expose .slide.current .inner {
+    /*background: #000;*/
+}
+/* See: https://gist.github.com/nicolashery/5765395 */
+/* Synic syntax highlighting */
+/*pre pre:not(.diff-line-pre),pre table{background:#000!important;color:#fdf6e3ff0!important;}*/
+
+pre { background: #fdf6e3; color: #586e75; }
+.linenos pre { background: #eee8d5;}
+.c { color: #93a1a1; }
+.err { color: #586e75; }
+.g { color: #586e75; }
+.k { color: #859900; }
+.l { color: #586e75; }
+.n { color: #586e75; }
+.o { color: #859900; }
+.x { color: #cb4b16; }
+.p { color: #586e75; }
+.cm { color: #93a1a1; }
+.cp { color: #859900; }
+.c1 { color: #93a1a1; }
+.cs { color: #859900; }
+.gd { color: #2aa198; }
+.ge { color: #586e75; font-style: italic; }
+.gr { color: #dc322f; }
+.gh { color: #cb4b16; }
+.gi { color: #859900; }
+.go { color: #586e75; }
+.gp { color: #586e75; }
+.gs { color: #586e75; font-weight: bold; }
+.gu { color: #cb4b16; }
+.gt { color: #586e75; }
+.kc { color: #cb4b16; }
+.kd { color: #268bd2; }
+.kn { color: #859900; }
+.kp { color: #859900; }
+.kr { color: #268bd2; }
+.kt { color: #dc322f; }
+.ld { color: #586e75; }
+.m { color: #2aa198; }
+.s { color: #2aa198; }
+.na { color: #586e75; }
+.nb { color: #b58900; }
+.nc { color: #268bd2; }
+.no { color: #cb4b16; }
+.nd { color: #268bd2; }
+.ni { color: #cb4b16; }
+.ne { color: #cb4b16; }
+.nf { color: #268bd2; }
+.nl { color: #586e75; }
+.nn { color: #586e75; }
+.nx { color: #586e75; }
+.py { color: #586e75; }
+.nt { color: #268bd2; }
+.nv { color: #268bd2; }
+.ow { color: #859900; }
+.w { color: #586e75; }
+.mf { color: #2aa198; }
+.mh { color: #2aa198; }
+.mi { color: #2aa198; }
+.mo { color: #2aa198; }
+.sb { color: #93a1a1; }
+.sc { color: #2aa198; }
+.sd { color: #586e75; }
+.s2 { color: #2aa198; }
+.se { color: #cb4b16; }
+.sh { color: #586e75; }
+.si { color: #2aa198; }
+.sx { color: #2aa198; }
+.sr { color: #dc322f; }
+.s1 { color: #2aa198; }
+.ss { color: #2aa198; }
+.bp { color: #268bd2; }
+.vc { color: #268bd2; }
+.vg { color: #268bd2; }
+.vi { color: #268bd2; }
+.il { color: #2aa198; }
+
+
+    </style>
+    
+    
+    <!-- /Styles -->
+    <!-- Javascripts -->
+    
+    <script>
+      function main() {
+    // Since we don't have the fallback of attachEvent and
+    // other IE only stuff we won't try to run JS for IE.
+    // It will run though when using Google Chrome Frame
+    if (document.all) { return; }
+
+    var currentSlideNo;
+    var notesOn = false;
+    var expanded = false;
+    var hiddenContext = false;
+    var blanked = false;
+    var slides = document.getElementsByClassName('slide');
+    var touchStartX = 0;
+    var spaces = /\s+/, a1 = [''];
+    var tocOpened = false;
+    var helpOpened = false;
+    var overviewActive = false;
+    var modifierKeyDown = false;
+    var scale = 1;
+    var showingPresenterView = false;
+    var presenterViewWin = null;
+    var isPresenterView = false;
+
+    var str2array = function(s) {
+        if (typeof s == 'string' || s instanceof String) {
+            if (s.indexOf(' ') < 0) {
+                a1[0] = s;
+                return a1;
+            } else {
+                return s.split(spaces);
+            }
+        }
+        return s;
+    };
+
+    var trim = function(str) {
+        return str.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+    };
+
+    var addClass = function(node, classStr) {
+        classStr = str2array(classStr);
+        var cls = ' ' + node.className + ' ';
+        for (var i = 0, len = classStr.length, c; i < len; ++i) {
+            c = classStr[i];
+            if (c && cls.indexOf(' ' + c + ' ') < 0) {
+                cls += c + ' ';
+            }
+        }
+        node.className = trim(cls);
+    };
+
+    var removeClass = function(node, classStr) {
+        var cls;
+        if (!node) {
+            throw 'no node provided';
+        }
+        if (classStr !== undefined) {
+            classStr = str2array(classStr);
+            cls = ' ' + node.className + ' ';
+            for (var i = 0, len = classStr.length; i < len; ++i) {
+                cls = cls.replace(' ' + classStr[i] + ' ', ' ');
+            }
+            cls = trim(cls);
+        } else {
+            cls = '';
+        }
+        if (node.className != cls) {
+            node.className = cls;
+        }
+    };
+
+    var getSlideEl = function(slideNo) {
+        if (slideNo > 0) {
+            return slides[slideNo - 1];
+        } else {
+            return null;
+        }
+    };
+
+    var getSlideTitle = function(slideNo) {
+        var el = getSlideEl(slideNo);
+        if (el) {
+            var headers = el.getElementsByTagName('header');
+            if (headers.length > 0) {
+                return el.getElementsByTagName('header')[0].innerText;
+            }
+        }
+        return null;
+    };
+
+    var getSlidePresenterNote = function(slideNo) {
+        var el = getSlideEl(slideNo);
+        if (el) {
+            var n = el.getElementsByClassName('presenter_notes');
+            if (n.length > 0) {
+                return n[0];
+            }
+        }
+        return null;
+    };
+
+    var changeSlideElClass = function(slideNo, className) {
+        var el = getSlideEl(slideNo);
+        if (el) {
+            removeClass(el, 'far-past past current future far-future none');
+            addClass(el, className);
+        }
+    };
+
+    var updateSlideClasses = function(updateOther) {
+        window.location.hash = (isPresenterView ? "presenter:" : "slide:") + currentSlideNo;
+
+        for (var i=1; i<currentSlideNo-1; i++) {
+            changeSlideElClass(i, 'far-past');
+        }
+
+        changeSlideElClass(currentSlideNo - 1, 'past');
+        changeSlideElClass(currentSlideNo, 'current');
+        changeSlideElClass(currentSlideNo + 1, 'future');
+        changeSlideElClass(currentSlideNo + 2, 'far-future');
+
+        for (i=currentSlideNo+3; i<slides.length+1; i++) {
+            changeSlideElClass(i, 'none');
+        }
+
+        highlightCurrentTocLink();
+
+        document.getElementsByTagName('title')[0].innerText = getSlideTitle(currentSlideNo);
+
+        updatePresenterNotes();
+
+        if (updateOther) { updateOtherPage(); }
+    };
+
+    var updatePresenterNotes = function() {
+        if (!isPresenterView) { return; }
+
+        var existingNote = document.getElementById('current_presenter_notes');
+        var currentNote = getSlidePresenterNote(currentSlideNo).cloneNode(true);
+        currentNote.setAttribute('id', 'presenter_note');
+
+        existingNote.replaceChild(currentNote, document.getElementById('presenter_note'));
+    };
+
+    var highlightCurrentTocLink = function() {
+        var toc = document.getElementById('toc');
+
+        if (toc) {
+            var tocRows = toc.getElementsByTagName('tr');
+            for (var i=0; i<tocRows.length; i++) {
+                removeClass(tocRows.item(i), 'active');
+            }
+
+            var currentTocRow = document.getElementById('toc-row-' + currentSlideNo);
+            if (currentTocRow) {
+                addClass(currentTocRow, 'active');
+            }
+        }
+    };
+
+    var updateOtherPage = function() {
+        if (!showingPresenterView) { return; }
+
+        var w = isPresenterView ? window.opener : presenterViewWin;
+        w.postMessage('slide#' + currentSlideNo, '*');
+    };
+
+    var nextSlide = function() {
+        if (currentSlideNo < slides.length) {
+            currentSlideNo++;
+        }
+        updateSlideClasses(true);
+    };
+
+    var prevSlide = function() {
+        if (currentSlideNo > 1) {
+            currentSlideNo--;
+        }
+        updateSlideClasses(true);
+    };
+
+    var showNotes = function() {
+        var notes = getSlideEl(currentSlideNo).getElementsByClassName('presenter_notes');
+        for (var i = 0, len = notes.length; i < len; i++) {
+            notes.item(i).style.display = (notesOn) ? 'none':'block';
+        }
+        notesOn = !notesOn;
+    };
+
+    var showSlideNumbers = function() {
+        var asides = document.getElementsByClassName('page_number');
+        var hidden = asides[0].style.display != 'block';
+        for (var i = 0; i < asides.length; i++) {
+            asides.item(i).style.display = hidden ? 'block' : 'none';
+        }
+    };
+
+    var showSlideSources = function() {
+        var asides = document.getElementsByClassName('source');
+        var hidden = asides[0].style.display != 'block';
+        for (var i = 0; i < asides.length; i++) {
+            asides.item(i).style.display = hidden ? 'block' : 'none';
+        }
+    };
+
+    var showToc = function() {
+        if (helpOpened) {
+                showHelp();
+        }
+        var toc = document.getElementById('toc');
+        if (toc) {
+            toc.style.marginLeft = tocOpened ? '-' + (toc.clientWidth + 20) + 'px' : '0px';
+            tocOpened = !tocOpened;
+        }
+        updateOverview();
+    };
+
+    var showHelp = function() {
+        if (tocOpened) {
+                showToc();
+        }
+
+        var help = document.getElementById('help');
+
+        if (help) {
+            help.style.marginLeft = helpOpened ? '-' + (help.clientWidth + 20) + 'px' : '0px';
+            helpOpened = !helpOpened;
+        }
+    };
+
+    var showPresenterView = function() {
+        if (isPresenterView) { return; }
+
+        if (showingPresenterView) {
+            if (presenterViewWin)
+                presenterViewWin.close();
+            presenterViewWin = null;
+            showingPresenterView = false;
+        } else {
+            presenterViewWin = open(window.location.pathname + "#presenter:" + currentSlideNo, 'presenter_notes',
+                                    'directories=no,location=no,toolbar=no,menubar=no,copyhistory=no');
+            showingPresenterView = true;
+        }
+    };
+
+    var toggleOverview = function() {
+        if (!overviewActive) {
+            addClass(document.body, 'expose');
+            overviewActive = true;
+            setScale(1);
+        } else {
+            removeClass(document.body, 'expose');
+            overviewActive = false;
+            if (expanded) {
+                setScale(scale);    // restore scale
+            }
+        }
+        updateOverview();
+    };
+
+    var updateOverview = function() {
+        try {
+            var presentation = document.getElementsByClassName('presentation')[0];
+        } catch (e) {
+            return;
+        }
+
+        if (isPresenterView) {
+            var action = overviewActive ? removeClass : addClass;
+            action(document.body, 'presenter_view');
+        }
+
+        var toc = document.getElementById('toc');
+
+        if (!toc) {
+            return;
+        }
+
+        if (!tocOpened || !overviewActive) {
+            presentation.style.marginLeft = '0px';
+            presentation.style.width = '100%';
+        } else {
+            presentation.style.marginLeft = toc.clientWidth + 'px';
+            presentation.style.width = (presentation.clientWidth - toc.clientWidth) + 'px';
+        }
+    };
+
+    var computeScale = function() {
+        var cSlide = document.getElementsByClassName('current')[0];
+        var sx = (cSlide.clientWidth + 20) / window.innerWidth;
+        var sy = (cSlide.clientHeight + 20) / window.innerHeight;
+        return 1 / Math.max(sy, sx);
+    };
+
+    var setScale = function(scale) {
+        var presentation = document.getElementsByClassName('slides')[0];
+        var transform = 'scale(' + scale + ')';
+        presentation.style.MozTransform = transform;
+        presentation.style.WebkitTransform = transform;
+        presentation.style.OTransform = transform;
+        presentation.style.msTransform = transform;
+        presentation.style.transform = transform;
+    };
+
+    var expandSlides = function() {
+        if (overviewActive) {
+            return;
+        }
+        if (expanded) {
+            setScale(1);
+            showContext();
+            expanded = false;
+        } else {
+            setExpanded();
+        }
+    };
+    var setExpanded = function() {
+        scale = computeScale();
+        setScale(scale);
+        expanded = true;
+        hideContext();
+    };
+
+    var showContext = function() {
+        var presentation = document.getElementsByClassName('slides')[0];
+        removeClass(presentation, 'nocontext');
+        hiddenContext = true;
+    };
+
+    var hideContext = function() {
+        if (isPresenterView) { return; }
+        var presentation = document.getElementsByClassName('slides')[0];
+        addClass(presentation, 'nocontext');
+        hiddenContext = false;
+    };
+
+    var toggleContext = function() {
+        if (hiddenContext) {
+            hideContext();
+        } else {
+            showContext();
+        }
+    };
+
+    var toggleBlank = function() {
+        blank_elem = document.getElementById('blank');
+
+        blank_elem.style.display = blanked ? 'none' : 'block';
+
+        blanked = !blanked;
+    };
+
+    var isModifierKey = function(keyCode) {
+        switch (keyCode) {
+            case 16: // shift
+            case 17: // ctrl
+            case 18: // alt
+            case 91: // command
+                return true;
+                break;
+            default:
+                return false;
+                break;
+        }
+    };
+
+    var checkModifierKeyUp = function(event) {
+        if (isModifierKey(event.keyCode)) {
+            modifierKeyDown = false;
+        }
+    };
+
+    var checkModifierKeyDown = function(event) {
+        if (isModifierKey(event.keyCode)) {
+            modifierKeyDown = true;
+        }
+    };
+
+    var handleBodyKeyDown = function(event) {
+        if (modifierKeyDown && event.keyCode == 80) {
+            setScale(1);
+            showContext();
+            expanded = false;
+        }
+        if (modifierKeyDown) {
+            return
+        }
+        switch (event.keyCode) {
+            case 13: // Enter
+                if (overviewActive) {
+                    toggleOverview();
+                }
+                break;
+            case 27: // ESC
+                toggleOverview();
+                break;
+            case 37: // left arrow
+            case 33: // page up
+                event.preventDefault();
+                prevSlide();
+                break;
+            case 39: // right arrow
+            case 32: // space
+            case 34: // page down
+                event.preventDefault();
+                nextSlide();
+                break;
+            case 50: // 2
+                showNotes();
+                break;
+            case 190: // .
+            case 48: // 0
+            case 66: // b
+                if (!overviewActive) {
+                    toggleBlank();
+                }
+                break;
+            case 67: // c
+                if (!overviewActive) {
+                    toggleContext();
+                }
+                break;
+            case 69: // e
+                if (!overviewActive) {
+                    expandSlides();
+                }
+                break;
+            case 72: // h
+                showHelp();
+                break;
+            case 78: // n
+                if (!overviewActive) {
+                    showSlideNumbers();
+                }
+                break;
+            case 80: // p
+                if (!overviewActive) {
+                    showPresenterView();
+                }
+                break;
+            case 83: // s
+                if (!overviewActive) {
+                    showSlideSources();
+                }
+                break;
+            case 84: // t
+                showToc();
+                break;
+        }
+    };
+
+    var handleWheel = function(event) {
+        if (tocOpened || helpOpened || overviewActive) {
+            return;
+        }
+
+        var delta = 0;
+
+        if (!event) {
+            event = window.event;
+        }
+
+        if (event.wheelDelta) {
+            delta = event.wheelDelta/120;
+            if (window.opera) delta = -delta;
+        } else if (event.detail) {
+            delta = -event.detail/3;
+        }
+
+        if (delta && delta <0) {
+            nextSlide();
+        } else if (delta) {
+            prevSlide();
+        }
+    };
+
+    var addSlideClickListeners = function() {
+        for (var i=0; i < slides.length; i++) {
+            var slide = slides.item(i);
+            slide.num = i + 1;
+            slide.addEventListener('click', function(e) {
+                if (overviewActive) {
+                    currentSlideNo = this.num;
+                    toggleOverview();
+                    updateSlideClasses(true);
+                    e.preventDefault();
+                }
+                return false;
+            }, true);
+        }
+    };
+
+    var addRemoteWindowControls = function() {
+        window.addEventListener("message", function(e) {
+            if (e.data.indexOf("slide#") != -1) {
+                    currentSlideNo = Number(e.data.replace('slide#', ''));
+                    updateSlideClasses(false);
+            }
+        }, false);
+    };
+
+    var addTouchListeners = function() {
+        document.addEventListener('touchstart', function(e) {
+            touchStartX = e.touches[0].pageX;
+        }, false);
+        document.addEventListener('touchend', function(e) {
+            var pixelsMoved = touchStartX - e.changedTouches[0].pageX;
+            var SWIPE_SIZE = 150;
+            if (pixelsMoved > SWIPE_SIZE) {
+                nextSlide();
+            }
+            else if (pixelsMoved < -SWIPE_SIZE) {
+             prevSlide();
+            }
+        }, false);
+    };
+
+    var addTocLinksListeners = function() {
+        var toc = document.getElementById('toc');
+        if (toc) {
+            var tocLinks = toc.getElementsByTagName('a');
+            for (var i=0; i < tocLinks.length; i++) {
+                tocLinks.item(i).addEventListener('click', function(e) {
+                    currentSlideNo = Number(this.attributes['href'].value.replace('#slide:', ''));
+                    updateSlideClasses(true);
+                    e.preventDefault();
+                }, true);
+            }
+        }
+    };
+
+    // initialize
+
+    (function() {
+        if (window.location.hash == "") {
+            currentSlideNo = 1;
+        } else if (window.location.hash.indexOf("#presenter:") != -1) {
+            currentSlideNo = Number(window.location.hash.replace('#presenter:', ''));
+            isPresenterView = true;
+            showingPresenterView = true;
+            presenterViewWin = window;
+            addClass(document.body, 'presenter_view');
+        } else {
+            currentSlideNo = Number(window.location.hash.replace('#slide:', '')) || 1;
+        }
+
+        document.addEventListener('keyup', checkModifierKeyUp);
+        document.addEventListener('keydown', handleBodyKeyDown);
+        document.addEventListener('keydown', checkModifierKeyDown);
+        document.addEventListener('visibilitychange', function(event) {
+            if (document.hidden) {
+                modifierKeyDown = false;
+            }
+        }, false);
+        setInterval(function() {
+            if (!document.hasFocus()) {
+                modifierKeyDown = false;
+            }
+        }, 100);
+
+        window.addEventListener("mousewheel", handleWheel);
+        window.addEventListener("DOMMouseScroll", handleWheel);
+        window.addEventListener("DOMContentLoaded", expandSlides);
+        window.onresize = function(){
+            setScale(!overviewActive && expanded ? scale = computeScale() : 1);
+        }
+
+        for (var i = 0, el; el = slides[i]; i++) {
+            addClass(el, 'slide far-future');
+        }
+        updateSlideClasses(false);
+
+        // add support for finger events (filter it by property detection?)
+        addTouchListeners();
+        addTocLinksListeners();
+        addSlideClickListeners();
+        addRemoteWindowControls();
+    })();
+}
+
+    </script>
+    
+    
+    
+    <!-- /Javascripts -->
+</head>
+<body>
+  <div id="blank"></div>
+  <div class="presentation">
+    <div id="current_presenter_notes">
+      <div id="presenter_note"></div>
+    </div>
+    <div class="slides">
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-1">
+          <div class="inner">
+            
+            <header><h1>Running an Analysis using 40,000 cluster jobs</h1></header>
+            
+            
+            <section><ul>
+<li>A Scientist asked how he can accelerate his R script</li>
+<li>The script had a loop with 40k iterations, each running ~ 10m</li>
+<li>would run ~270 days using a single CPU</li>
+<li>a good case for our restart queue if we can make it run parallel</li>
+<li>This readme is also a <a href="http://fredhutch.github.io/slurm-examples">presentation</a></li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              1/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-2">
+          <div class="inner">
+            
+            <header><h1>The restart queue</h1></header>
+            
+            
+            <section><p><img alt="Restart Queue" src="data:image/png;base64,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" /></p>
+<ul>
+<li>quick batch access to &gt; 1000 cores  </li>
+<li>very few users, almost always capacity !!!!</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              2/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-3">
+          <div class="inner">
+            
+            <header><h1>Best practices for 'restart' jobs</h1></header>
+            
+            
+            <section><ul>
+<li>jobs get killed quickly if not enough resources in priority 
+  queue (campus) </li>
+<li>average run time of jobs that were killed is more than 1h. </li>
+</ul>
+<p>Recommendations:</p>
+<ul>
+<li>Either write intermediate results to disks (checkpointing)
+  or make sure jobs run quickly </li>
+<li>jobs should be short but not too short, 15-30  min ideal</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              3/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-4">
+          <div class="inner">
+            
+            <header><h1>Definitions</h1></header>
+            
+            
+            <section><ul>
+<li>
+<p><strong>Job</strong> : one script submitted to an HPC cluster </p>
+</li>
+<li>
+<p><strong>Analysis</strong> : an experiment has one or more Jobs </p>
+</li>
+<li>
+<p><strong>Loop</strong> : set of instructions that need to be repeated X times 
+  (X must be a known number)</p>
+</li>
+<li>
+<p><strong>Iteration</strong> : running through a loop a single time</p>
+</li>
+<li>
+<p><strong>Stepsize</strong> : number of consecutive iterations through a loop</p>
+</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              4/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-5">
+          <div class="inner">
+            
+            <header><h1>The problem</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="c1"># In the loop below, &#39;i&#39; indexes genes.</span>
+<span class="c1"># To parallelize, we&#39;d break up range of &#39;i&#39; into 1:10, 11:20, etc.</span>
+<span class="kr">for</span> <span class="p">(</span>i <span class="kr">in</span> <span class="m">1</span><span class="o">:</span><span class="kp">dim</span><span class="p">(</span>LGG.GBM.mut<span class="p">)[</span><span class="m">1</span><span class="p">])</span> <span class="p">{</span>
+    <span class="kp">print</span><span class="p">(</span><span class="kp">paste</span><span class="p">(</span>i<span class="p">,</span> <span class="kp">Sys.time</span><span class="p">(),</span> sep<span class="o">=</span><span class="s">&quot;   &quot;</span><span class="p">))</span>      
+    tmpMutTbl <span class="o">&lt;-</span> LGG.GBM.mut<span class="p">[</span><span class="o">-</span>i <span class="p">,</span> <span class="p">]</span>
+    <span class="m">.</span>
+    <span class="m">.</span>
+    D.after <span class="o">&lt;-</span> <span class="kp">as.matrix</span><span class="p">(</span>as.dist<span class="p">(</span><span class="kp">max</span><span class="p">(</span>SNV.CNV<span class="p">)</span> <span class="o">-</span> SNV.CNV<span class="p">))</span>
+    D <span class="o">&lt;-</span> <span class="kp">sum</span><span class="p">(</span><span class="kp">abs</span><span class="p">(</span>D.before <span class="o">-</span> D.after<span class="p">))</span>       
+    effectLOO <span class="o">&lt;-</span> <span class="kt">c</span><span class="p">(</span>effectLOO<span class="p">,</span> D<span class="p">)</span>        
+<span class="p">}</span>
+</pre></div>
+
+<ul>
+<li>loops over many genes sequentially on a single compute core </li>
+<li>collects results in vector <strong>effectLOO</strong>, but does not save it</li>
+<li>running for 270 days before saving your data? </li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              5/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-6">
+          <div class="inner">
+            
+            <header><h1>how long should a loop take</h1></header>
+            
+            
+            <section><p>STEPSIZE = number of iterations per loop or job</p>
+<p>with a STEPSIZE of 1 </p>
+<div class="highlight"><pre><span class="kr">for</span> <span class="p">(</span>i <span class="kr">in</span> <span class="m">1</span><span class="o">:</span><span class="m">1</span><span class="p">)</span> <span class="p">{</span>   <span class="o">~</span> <span class="m">10</span> <span class="kp">min</span>
+<span class="kr">for</span> <span class="p">(</span>i <span class="kr">in</span> <span class="m">2</span><span class="o">:</span><span class="m">2</span><span class="p">)</span> <span class="p">{</span>   <span class="o">~</span> <span class="m">10</span> <span class="kp">min</span>
+<span class="kr">for</span> <span class="p">(</span>i <span class="kr">in</span> <span class="m">3</span><span class="o">:</span><span class="m">3</span><span class="p">)</span> <span class="p">{</span>   <span class="o">~</span> <span class="m">10</span> <span class="kp">min</span>
+<span class="kr">for</span> <span class="p">(</span>i <span class="kr">in</span> <span class="m">4</span><span class="o">:</span><span class="m">4</span><span class="p">)</span> <span class="p">{</span>   <span class="o">~</span> <span class="m">10</span> <span class="kp">min</span>
+<span class="kr">for</span> <span class="p">(</span>i <span class="kr">in</span> <span class="m">5</span><span class="o">:</span><span class="m">5</span><span class="p">)</span> <span class="p">{</span>   <span class="o">~</span> <span class="m">10</span> <span class="kp">min</span>
+<span class="kr">for</span> <span class="p">(</span>i <span class="kr">in</span> <span class="m">6</span><span class="o">:</span><span class="m">6</span><span class="p">)</span> <span class="p">{</span>   <span class="o">~</span> <span class="m">10</span> <span class="kp">min</span>
+</pre></div>
+
+<p>.. or with a STEPSIZE of 2</p>
+<div class="highlight"><pre><span class="kr">for</span> <span class="p">(</span>i <span class="kr">in</span> <span class="m">1</span><span class="o">:</span><span class="m">2</span><span class="p">)</span> <span class="p">{</span>   <span class="o">~</span> <span class="m">20</span> <span class="kp">min</span>
+<span class="kr">for</span> <span class="p">(</span>i <span class="kr">in</span> <span class="m">3</span><span class="o">:</span><span class="m">4</span><span class="p">)</span> <span class="p">{</span>   <span class="o">~</span> <span class="m">20</span> <span class="kp">min</span>
+<span class="kr">for</span> <span class="p">(</span>i <span class="kr">in</span> <span class="m">5</span><span class="o">:</span><span class="m">6</span><span class="p">)</span> <span class="p">{</span>   <span class="o">~</span> <span class="m">20</span> <span class="kp">min</span>
+</pre></div>
+
+<ul>
+<li>a STEPSIZE of 2 : 10 min * 2 iterations = 20 min compute time</li>
+<li>not efficient if a job waited 5 min but then ran only 2 min</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              6/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-7">
+          <div class="inner">
+            
+            <header><h1>saving the state of each loop</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="c1"># begin loop</span>
+<span class="p">{</span>   
+    D <span class="o">&lt;-</span> <span class="kp">sum</span><span class="p">(</span><span class="kp">abs</span><span class="p">(</span>D.before <span class="o">-</span> D.after<span class="p">))</span>       
+    effectLOO <span class="o">&lt;-</span> <span class="kt">c</span><span class="p">(</span>effectLOO<span class="p">,</span> D<span class="p">)</span>        
+<span class="p">}</span>
+
+<span class="c1"># save each variable to disk instead of adding to vector</span>
+
+<span class="c1"># begin loop</span>
+<span class="p">{</span>
+    <span class="kp">save</span><span class="p">(</span>D.after<span class="p">,</span> file<span class="o">=</span><span class="kp">paste0</span><span class="p">(</span>scratch<span class="p">,</span><span class="s">&#39;/&#39;</span><span class="p">,</span>i<span class="p">,</span><span class="s">&quot;-D.after.RData.tmp&quot;</span><span class="p">))</span>
+    <span class="kp">file.rename</span><span class="p">(</span><span class="kp">paste0</span><span class="p">(</span>scratch<span class="p">,</span><span class="s">&#39;/&#39;</span><span class="p">,</span>i<span class="p">,</span><span class="s">&quot;-D.after.RData.tmp&quot;</span><span class="p">),</span>
+                <span class="kp">paste0</span><span class="p">(</span>scratch<span class="p">,</span><span class="s">&#39;/&#39;</span><span class="p">,</span>i<span class="p">,</span><span class="s">&quot;-D.after.RData&quot;</span><span class="p">))</span>
+<span class="p">}</span>
+</pre></div>
+
+<ul>
+<li>save into a tmp file first and then rename it. Why? </li>
+<li>What else is needed ? Zoom out!</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              7/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-8">
+          <div class="inner">
+            
+            <header><h1>What is slowing us down in HPC?</h1></header>
+            
+            
+            <section><ul>
+<li>jobs require input files that <strong>need to be prepared</strong> (wait for prep, then 
+  start the real job)</li>
+<li>not worth running the prep work on the cluster, don't know <strong>how to "connect" </strong>
+  the 2 work steps on the cluster</li>
+<li>I need to <strong>manually re-run failed jobs</strong> before I can merge the outputs 
+  of all jobs into a single result file  </li>
+<li>I <strong>cannot use the restart</strong> queue because each of my jobs runs too long
+  and is often killed by a higher priority job </li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              8/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-9">
+          <div class="inner">
+            
+            <header><h1>Centipede Slurm example</h1></header>
+            
+            
+            <section><ul>
+<li>Centipede is a simple <strong>shell script</strong> that can make using a Slurm cluster 
+  <strong>much easier</strong>.</li>
+<li>Using the centipede command one can submit <strong>many thousand</strong> short running 
+  <strong>jobs</strong> to a Slurm HPC cluster. </li>
+<li>The script goes through all <strong>4 phases</strong> of a typical HPC pipeline which 
+  needs to split up the computational work across many nodes. </li>
+<li><strong>standardized</strong> approach for calling Python and R scripts</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              9/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-10">
+          <div class="inner">
+            
+            <header><h1>The 4 phases are:</h1></header>
+            
+            
+            <section><ol>
+<li><strong>Data preparation:</strong>
+   Input files are not available in an expected format and need to be
+   prepared. </li>
+<li><strong>Parallel execution:</strong>
+   The computational problem needs to be split up into many smaller 
+   problems that can be distributed to many compute nodes. </li>
+<li><strong>error correction:</strong>
+   A small percentage of jobs often fails. The script should detect this
+   failure and rerun only the failed jobs </li>
+<li><strong>merge of data:</strong>
+   collect data files generated by each job from disk and merge the data 
+   into a single vector, sequence, list, dictionary, data frame or table </li>
+</ol></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              10/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-11">
+          <div class="inner">
+            
+            <header><h1>Command arguments for SCRIPT</h1></header>
+            
+            
+            <section><ul>
+<li>
+<p>Centipede assumes that you want to launch another script (e.g. using R
+  or Python) which is set in the SCRIPT variable. </p>
+</li>
+<li>
+<p>It assumes that SCRIPT takes at least 1 or 2 command line args each of which 
+  tell SCRIPT to execute one of the 4 different phases. </p>
+</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              11/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-12">
+          <div class="inner">
+            
+            <header><h1>Arguments for example.R:</h1></header>
+            
+            
+            <section><ul>
+<li>Phase 0: ./example.R listsize  (get array size - not run via slurm)</li>
+<li>Phase 1: ./example.R prepare   (initial data preparation)</li>
+<li>Phase 2: ./example.R run xx    (run $listsize # of jobs)</li>
+<li>Phase 3: ./example.R run xx    (run only the failed jobs with no outfile) </li>
+<li>Phase 4: ./example.R merge     (merge the output files) </li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              12/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-13">
+          <div class="inner">
+            
+            <header><h1>scentipede setup</h1></header>
+            
+            
+            <section><p>scentipede itself can take at least 2 arguments, SCRIPT and ANALYSIS. 
+You can change these constants:</p>
+<div class="highlight"><pre><span class="nv">ANALYSIS</span><span class="o">=</span><span class="s1">&#39;myProbe1&#39;</span>  <span class="c"># change for every analysis you run (2nd arg)</span>
+<span class="nv">MAILDOM</span><span class="o">=</span><span class="s1">&#39;@fhcrc.org&#39;</span> <span class="c"># your email domain (for error messages)</span>
+<span class="nv">MAXARRAYSIZE</span><span class="o">=</span><span class="m">1000</span>    <span class="c"># set to 0 if you are not using slurm job arrays</span>
+<span class="nv">MYSCRATCH</span><span class="o">=</span><span class="s2">&quot;./scratch/</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span><span class="s2">&quot;</span>  <span class="c"># location of your scratch dir</span>
+<span class="nv">PARTITION</span><span class="o">=</span><span class="s1">&#39;restart&#39;</span>  <span class="c"># a queue on your cluster for very short jobs</span>
+<span class="nv">RESULTDIR</span><span class="o">=</span><span class="s2">&quot;./result/</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span><span class="s2">&quot;</span>  <span class="c"># A permanent storage location</span>
+<span class="nv">SCRIPT</span><span class="o">=</span><span class="s1">&#39;./example.R&#39;</span> <span class="c"># your code as (R or Python) script (1st arg)</span>
+<span class="nv">STEPSIZE</span><span class="o">=</span><span class="m">2</span>           <span class="c"># number of consecutive loops in SCRIPT to run in</span>
+                     <span class="c"># the same job / node (increase for short jobs)</span>
+</pre></div>
+
+<p>to start the python example without editing the script, run it like this:</p>
+<pre><code>./scentipede ./example.py myFirstPyJob  OR
+./scentipede ./example.py myFirstPyJob some other example.py arguments
+</code></pre></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              13/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-14">
+          <div class="inner">
+            
+            <header><h1>Job Arrays</h1></header>
+            
+            
+            <section><p><img alt="Job Arrays" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAdEAAAEECAIAAAD4UplQAAAhgUlEQVR42uzdQWwa954H8MmqgsN6Lg8fHq4URtELHAKHBqQWoq3ptoJsZKK+TFQJZ6NM3kqmTzKJZFKpJlJtVzJ+UoylBKRXW9oNUddYGxm/yqC0Rn0ybmXYSJ70AD1AVhY8qaYH6AVf4JKdAQxjO4mdxMyA+X4OMcx/GM9vYL78//+ZJCeePXtGAACAKP5J6h0AAOgiyFwAAPEgcwEAxPPWrmcnTki9PwAAx9HOlbO3XtQAAABHQ9CdxdwCAIB4kLkAAOJB5gIAiAeZCwAgHmQuAIB4kLkAAOJB5gIAiAeZCwAgHmQuAIB4kLkAAOJB5gIAiAeZCwAgHmQuAIB4kLkAAOJB5gIAiAeZCwAgHmQuAIB4kLkAAOJ568038ao2NzelrvoInDp1SupdAIDOI0HmEp0fWMfjawMAxIe5BQAA8SBzAQDEg8wFABAPMhcAQDzIXAAA8SBzAQDEg8wFABAPMhcAQDzIXAAA8SBzAQDEg8wFABBPB2VuIew0cJzhwlGuCgAgog7KXACAjofMBQAQT2dnboENuhmryWAwmKyMJ5wu7WkvZcIexsw1m2lXMFkSvC7govnl1ZYAiykIABBHB2fuVth50TETTRUr3JNKMbU0cYXxJsuCNRIzNyaWUtvco+3c2sx1xldrTQccDv9abru6DtfidzgCaamrAYCu0LGZW1rxTiQqhNIyubi+sbGxOj9qlBG5BYeXFaSuyj672mgkcg8WElxft5Bhc1ybZbraNGtXci1zkaTUBQFAN+jUzC2xa2vcD+PQiJWScw9IDT08xKVnJRLPNFayOIf0ZK2RofkFsWSWe9an5AKYiLovM25vtGDxfbe+EXfppK4IALpBp2ZuuVSdnaWo3sYihYLi/qxUCMEScuehSm3caZTrXfdHjApZpZiKLkzdvn75/AeD47EtqSsCgG7Qzplbv8vWHdt1aYwk+X6tnKzGaTbbvPxVLGa5P2Wy5qqC1lwm0WyUawZ9K/H11eX5e2PXLGpZJRO5FYiXCQCAFmvnzO2lKD4jY6FqJ7SUYvnYVKqV1ekCtV7L/UjMzaxk+bAspUP+uTyXqgMmdWMDicBcnE/dcjYcCBH1xjLr4W90sHlZok9jsg1dG6D4dbeFHWQAgNY48ezZM8GzE4TwaWtsbm4e9v/9TQfoK/6cYIHMOLnss1bnE8rJwHWHP7MrKVX2+0GXTs73kM9PJPZuTTU8H2I01RseLvPX34TbtUyveMwkcUivUAIAgCBa27mfSxAaZnZ2uF/Vwz/uUfXbJ4PT1p0JXLmOCS7Pjli0Cr4zLFNoL43NB/jAbTKO3Bu7VG3nXjxyP8AHLqfPNh2ctNc3K1Oo+4dnl18hcAEAXlt793Pb1TEoAQDE0zH9XACA4wWZCwAgHmQuAIB4kLkAAOJB5gIAiAeZCwAgHmQuAIB4kLkAAOJB5gIAiAeZCwAgHmQuAIB4kLkAAOJ5S5Lfurm5KXXhAAASkCZzO/0f5cJ3BgC8HswtAACIB5kLACAeaeYWoKUw9QHwqkSb8ETmHk+dPmPePrrw/wTpzpJF+12YWwAAEA8yFwBAPMhcAADxIHMBAMSDzAUAEA8yFwBAPMhcAADxdE7mJr0GgzNcOGCtQthpMHiTB6yVDTEHrwQAcOQ6J3OPTCHucU2lpN4LAOhKXfb30Aqs75bzQYaQSb0jANCdOrafW2ADLtpsMBhMVsYdSpaEbaVk2MPwbWbaFWCb0xFJ73lnghpdDI7qpd59AOhOnZm5pZj7ojOmGw9vbGzE54d6gtcZb7LcaI74o5pRvi3s7gs7HL6dJura8mpw3Eb1SL3/bao6GX6YWfNXWnVHOmAz1LhWSod+VUd601L5axeNg1t7ImSmHe4ge+CRLye9/G6Ic+FC6pJLaa6fZTU9vxPWXjoyc9Mhb5QaHmd0JP+s1+T2DFcWvJGtnfb+MQ+t4dtIvYtrerCQqL0DZG+fXOp971rpRChff7gWjbfxKdH+pW7n2OiM46IzvPWSlQpx7/hC/tDb7OyS0wHmysRSqljhHleKqejUdcYn6IS1l07M3EKWzRN6HdVcotGZiRSbqb/VenMtjKsotZGIslmp97nr1U5Krd3eTxz30G1Nqfb7G3Xry7PXtDKikpiYev4wo7zF+piLN5ZyXVJyOR7yc7Uq7bOr3Lqr9+xKgsg1elptpxMzl+C+zYxqpXAJf02sVCrvPBFcIpOT6Nq+vgIbdDdGbJ5wet+nuJRpTp0HXzKgq52Uahs9ZKmelpGY8NSpjyU9gaCD25aZCWV35i68wfFBE/fLPfxpXM7ujB+5JYP1qfrSimvviDYbGuRXqQ2qd72IqyHb6u7PS0vdX1fueZW+lLxP7/SN8dtOLKxl979n4VsXHQ9ShHbAom5xqW1ScjabUat6CLNFXx3cmsxGfmkjD9pNO2duMkibnzthyEVqIrNr2MSPKZQKcudJpdlSKhalrqNTbYWdFx0z0caIbWniyq5pc05i5gY3pNsm+MHf2syLB3T1k5LWU6SpelomQmv7R4lL/hmW29Z2n0Kxs/2FmUiGez9lfQqysHJrcGf8yO1OZs3vmOA+HaSZvkTs6lxl2VCG+zgMDej4mf8J4Yu4GgYnYi3t/xyqVEFd/7y/0kP8FlJfDZYMm91fjIw02ifnVwLDRsUhtnQMStYMBoKh2IZLV9+dZIL/oTzUViXQzplLyuXb2V2RWTuMvZReSbDJbHN5OhkjtBqq3qNl2WZfppyJxwiLnpK6ls5TWvFOJCqE0jK5uM6P2OZHjTIit+DwssJYVdXHc9XWFw7oaiel0qKl+G6IzcItSoUT+05LmXFsmd/YqJFsbv8+99tXg7Qmu/aA2x3tyCI/1lydHuBbq9+8cr31kkwQurXIVTNmTfVJlItb1fA8/6rlUe6krURDscNf+Htlhyy1WdeLl7xUL0VV36X9nbleq8fnsmrECxzpSxYoJ71uf55/y2lTm45w2zlzKa1FlQ9FWP5UKsTCMZnFpKseRg3tsmT944HaWLYQ97j9MrtroG/nhRHv1MpWrcnrWVIOXzO36TdeGyuxa2vcD+PQiLX6XUZq6OEhJRdZkXimuZbFOVQbz2lohuYXxIRfhTvqJyVtrJ5bpN7ygtNywG7h30OyOR2kHqT5t5wkSYKigxsb69Om0krI63ZORZsvk2utA83QrUWuljZSfJuC0nJ/5vwO2uUJssrhZe4k99l6W3bYDlmqoK4XLukUbVRyOR1wOBZyfJqP2w8X5BJo678ToWF894pTbquhWOnRXnIFx3aykzR7ln2BqXGbIbctU2gHhucDNk3jRDWOuPSs23w7tc2/ajFoo6QupAOVS9UvNIpq5pNCQRFEviKYuOEWNXukaq4TmdjVWle/pp33XzH4BYtToUSWpinBkv1z7wpZ476+cjp4w1Gde9hHrqeHlEt+PnStVCzARW5/Lb0Joo/2TKfd40up3NrSzNoSt6RHPzJ7b1DTmj7QYUsV1PXCJS9XyGarPyX/2z1tUzIfuNf9qQqhGpj2uXRt2skl2jxzuVPG5PKtuJ7X0qtnvCFm/2Kbb8PGPzDZ3C/camOlblcIO89PJAjL9KpHMBSo9TNrvY9stkDo6rFbLGa5P2XCj7ygOZdJ7G2tSUbmnn/LUiYQS9PMIbsjW5EpPnBVA6Nupl+tzM2dcyw0WzVGWun3r0ViMT2fABabqVFOn9kdiLnLhWyGZcNLviWWnZmImIK7wv6oHE2ph1HOsPzhVps1reuzd1TJW+FbtcC9dG/WbZL4oLxcO88tQKv1UhSfkbFQjB8IllLVD7VSreQCi1Tr+VF5Ym5mpTo7XkqH/PzZJRswCa6GJwJzcX5ytJwNB0LE3taqZDTE9X1ll2bXN5q+G+Mvh+RDifRhd7WYrf4TGTqzRc91vVOx+O5mPnS53Zlyc/sou0TvTAhvhZjqFfJQnqR0VtppN/NLW3VF+4hKPVApHZ7yRrgHRns/1ZJKOqzkctLn5C8+yIxjvjYPXKLt+7nQWrqBIdWCP5eYuGiYqC2RGYcHqp2TvgHXcMjhz0RvX47e3llfZZ916YWjttzSjfNLjWeqIVq/Z0xXOymJAbNW2NBrtBiJRII/LRnNofpClH5AthCpRG59EKnuJt+hrhDNO1Q0Fkbrn0pVuBPPbmvsBFeEPXh9ITF1+dxUcy/rU49H7ahKfb6F64aFXQu4gBlt4cx0B5W8FfE+qN6LXBF8kAnj2HetnLl/fejndjcNMzs73K+qTqz1qPrtk8Fpa/1zKtcxweXZEYtWwfeFZQrtpbH5wJ55MuPIvbFL1RW4F4/cD+wbS9ZPyp2rnw3V0/JV+kKkefT+iJH/TTKFcXh2ebnal4olGy/vM9r4jnn9HrEdcp1rtlEDt5N6voijHPG2oNQD8W/U2P1ln63vzbd1DEouJGMd9c8Ennj27Jng2QlC+LQ1Njc3T506JXXhx7mENt+91iixXsaxkFMOz4ePNFO78GCi5KMniFbMLUCnK8XcH9yq3zumZSxte48QAA9zC9DpSIWanxupzjlM01KPtwFeDv1c6Hg6JrbBSL0TAIeDfi4AgHiQuQAA4kHmAgCIB5kLACAeZC4AgHikuW9hc3NT6sIBACQgTea+/fbbUhf+Rn755RepdwEAOhLmFgAAxIPMBQAQD/4e2vGEGfMj1IUHswtLFg0y93jqtn8XqnXwj2x1AzG/YzC3AAAgHmQuAIB4kLkAAOJB5gIAiAeZCwAgHmQuAIB4kLkAAOLpnMxN3T13buRR8YC1io9Gzp27+4L/ermc+/7u53brOY7V/vnXTw7aGADAEeuczH1jxe9Hmf8sffSX5XXO4mfKR87hv6bKUu8VAHSV7snc3A9fPz5z9T8+Usn5Z+TZm7c/+fW/Hz4uSb1fANBNOjZzi0++rk0TfGAb+uJvqV3RWfr50Z0h654ZBNUfH6z7Lyiba5EnTxLb2xWpCwGAbtKZmVv64YvLrh/P3F5cX19fDfyJfOgYuiuYJvj2q+//8NniATMIpaeP/49Q/q5H6lraQ5n1mAwGAxPaeu0txD0mZ7ggdSHtIuk1GA4+HIWw02DwJg9YKxtiDl5JekdQcjm74nXRZu6TaDDTrgB7LD9OHZm5T7+5+/eTn96+qiX5Z4r3Pvvy08rDe4/yO+3/cnvij6f5NvLsTa7peTMI5Sf/9dcfT/77v70jl7qYtlBOrUQou70/FYimX+v12dCtW0sYM7RAIe5xTaXefDsdoLBya3CuZPGubHDC7r6ww+FLHr8rLp2YucXcT78SZ8+omktOn3mf+Pmnp/Vkfef9M2Sj6eTp94i//5TbvYX8o1HXQ9knt/+kReTySonQksIyMGTpz4cSrxq6pXR4fPCyl5W6iGOowPqYizcieZnUOyKK7NqDhI4ZslK1Ky5617g9/2AhceyuuHRi5hJcf+rd00rhEv5D2ZiblRGCz6i8Z+8HNv/958xk/mPf3E0kbk0pHo7KzHoNqTcb83MhVtC14EeC3vCK22riRnveZJkbPzqD4QDDDf9MjvAWv4L7ijdvm1320VKX0c4KbKA2ZjZZGXcoufvyQzLs4Q/o3uF00nvemaBGF4Ojeql3X5SSKTq4MWvra65FUhRRKh27jm47Z27qf+zW596Ry6Xo46d54RI+bRtzsxVCMMgt/SbcQDn3t5HBsdwFLnDPkgRUbUUX1pRDAzqC6DUP9FciK3vmvxemIsb78Y3VxWtq/ksqMRMoOsMbG8uTZu78II2jq7FZRt/bHX2x11KKuS86Y7px7qBtxOeHeoLXGa9gzBzxRzWj4f3Daera8mpw3EZ14iWH1yx59zbS8QyhVBy787SdM5eUybZzxd8ES2qxqlC983viyc+C+YKnP/9AnPmDqt5t/elJrvEWlp8+/pH48J3qPAQXuKPMveInswEErsBWIpxS0kYN/5g0WforS6E947kBu4VP197e2gFWD9J67vj19vIHUd7bh2P5cumQN0oNjzO66oHqNbk9w5UFb6RxtbJ/zENrqpcf9C6uqTGcJnv7OnUg9rolC5TZOf+a6ppN36nH4IXaOXNV2o9O/vrNoyf821H84dsfZB++e6b6Bpz++OaH//hq8uvaHWLF/73zxVeyT2407wP79u6d7/O1pnt3vvn9p1ffJ/mrZl+NTOc+9s79GVMKQuloIKVmzJraM9JMXyKi4bjwFFBrdp/7WqXyFbbf9QpZNk/odVRziUZnJlJspn6M9WZd81uLUhuJKJuVep8lL3krfMu5ILOPD+mO38na1v83z+mrM97f7oxdPPdbpefMxzcDt9+vv1Pk+18uer++M3n53D+2Zb87c+HPgbkLpxtvzrs3bp79acw69vM2/6pg4ALfyy09/ubhrwTx0PmvD4W/4pPZ9ZtaqeuUUjoRyhP5qcuGKeHSheiWld6ZWVPIdo9u5eTxOw9aqUIQRvW+yw+Nicrdlx+Ox7F9s5K3VlyDE1v0bMB1DBO3zTOXIJTv3ZwJ33xei+Ls1b8sXN2/+MLM+gX+wXsXPtvVwMX0+vqXUtfTbspsaC7fP7nqtZKCZZ4PHOHEFk33vcGWu08ySDsTzKLP1rungcuXRIYbdzWXVy8/8BOVJWLv5YdikfsQS12KhCXzdx0OTlUDV39MJ63aeW4BWo2/LbfSbzHt+nDLtdYB2eveqNvFSLl8O1sUXrGtXf/ppfRKgk1mm8vTyRih1VD1PhzLZpuXHzLxGGHRU1LXIlHJ1cD1Fu33g8c2cAlkblcrxYJL+yK3HrqvcaNul6O0FlU+FGH5jlwhFo7JLKba0FhDuyxZ/3igdrtUIe5x+2V210BjFBHxTq1s/X97dxDSVrr3cfwULsnGbJoumhGqlKYuoouqoG3Qa6nUe8NY7FgKzp0yzizUAa3QXGGuAa0D6oWMhahQp/A6vtixTNBpaEucFqW+LbYNVF0YF9OAaCETF42buEk2vjmJ0VjbqZ3R5ySe72dTz3lyjud/Yn55zvOcpPGmnq5fDI1flqVL3uxtyeGZ/qbupeq+H5sO5JDCphQfW8A+Cj179H/S+e/P7HiFawsqqzW/3BqbqWnN+jM7Vqmc2r7eYHdrRWEwkpH7mXWkPZGdurKue31D3dcrC5fXNPrcTxt/GqrM2YyV09esBTOtZTbvmrzV6EhlttKFKFNy6PnYnYAk3ak330n+FTU/vrTmKV3nnjq0vr6etHRISl7cH4uLi5mZmUoX/pf4/f7jx48rfRTvFT3DqXx46UWFJ5OS915StDK2AADikLkAIA6ZCwDikLkAIA6ZCwDikLkAIA6ZCwDikLkAII4yn0Pz+/1KFw4AClAmc9P9Uy6Li4tKHwKAtMTYAgCIQ+YCgDh8r9jBxOjHHlLhyVRhycKQuQdTun9zW+rw+/1qO5nqLFnY72JsAQDEIXMBQBwyFwDEIXMBQBwyFwDEIXMBQBwyFwDESZ/Mne8pLGy6/+YDj3pzv6mwsGf+Pa2h+bHW2rLCwsIzFU09D5fCStcEQG3SJ3P/uqWxpq9G9E33X758+ezH80sdn3dMhZQ+JgDqoqLMnR/r8Z5vqivQyQufVFqt2Y/Gnn2o3wwAeyltM/fNzJC1Oj5MUNs6Nr+twxqav98VG0Ioq7YOzSRiNc/67GVXmS7xoHCITi4A0dIzc0NTrReapvKux4YJfqrLGPmqtmd+a3T2Qf+jnP/IbfdbP7lfX983v2PgNvTbWP+t0Ge1ZUeULiVFhGftZ81mc93dwMduGZz9ua2uUt74bGWd3b3MIHmM12E2X3MHP/CooPua2ezwvqc18upBR32FfGYv/Lt/6qOfmXQseVN41lG9i72lo7TM3N/Geh5lN16vzYt1Wo+cae1qjNzpefB7ov3v7V3VOXKbrsAabfrfO8+Tu7QzfdWf19Z3vzrdVH1Sq3QpKSK8MOk+dvlyycLtCd9Hbee92WidNF4deTw9Pf1rf1XAXvufiYP4OhFPG3gQn36IntmN6YfnEaUPSpSwd8DuXFH6KPZJOmbum6WZgFSQl721JievTPLOvNpI1oKyvM0RBCn75Gnp0cxS0uYFTWMjY1OPv8+7/6/ad3SB1SjkcbkOl1u+Li9Zcb34iNANz43ffl3VcCU3dr61WRZbyynPTfdHxTbeLT790Jirif4c1p+PTz8ofVBihL2Dna4VjdKHsV/SMXOl6Nv96ZOG5DXy8xMKhRMLSU+XVvfuvqwur6bus+W3usAqFfK4JzWlp4y6U6VFK4Ou2aT3IflK0OGeaJMHDyoc3nD0+vHaz+7huugV79lG92pxy/R0c/7WwzMOG6SVVd7HdgjODn9bUxEfgGm7690+/bDgtssn1FxR8+3wbOIq4WTj4+n205sPSr/ph48veYPP2enM7+6uUrqA/ZLKmTs/Ul32zjtyo5H6/NW24S35osug1yUWkq7BQsH3XerG0ngzqFUsMOF8evRrS64k6UssJRH35ML2c+K0u4tvPZ7+deQLo/z+5ekdXm0YnZ4e7SgxvL2r174X0oljut3+ZpUIPWm7ZH1qskVP2vTjoa91zvq66NvXZvP4wMSJFrlttMXgbmq86d3xJxlZehCfflC6EgEl+4bbBo0dDcUZSpewb1I5c3Va7drStsiMx+qR7AKDNDO/tLX+t/kpKTcne6NHOzOz9WmH8KtnU9L5gmxJevOwqfBM8qclQr//Lmmys1U/ixZ4Mb5wtKrYKP+sKyovibhcnu19Ksvlc9F01en18RN84nJVfvR50OvfztaA++bAatGV0iylS0otPpdj8liDbWMERl/c8l1DxNnr3uw0lNg6Lhpj0w/5zdGm287tp//W51+l3fTDny55+a590GBrLj3Ib9upnLnZueezAmMPZuSn483U/SnN+TN5sb+6nGrr+aX+60PxO8TePOtq7dfUWD/9JLHhg57uh7/Hm3q6fjE0finfIXakrK7GcOd6T2x38o0LrR3PT7d/mad0lUrzTdxeOPFFqTG+pCupqpIm3dte9SdOGLa92HMNR9+xn7DXca1zrqilpVyvdEmpJbg8tyLlm5LeiIymUmlhLjHqfarUtJUwx4zF0uTccvL2dSM/jjycjk8/vJLSInbfW3Loj0sOuB29GTbbAf8LSun/myentq832N1aURiMZOR+Zh1pT9xdqyvrutc31H29snB5TaPP/bTxp6HKnM2/xtPXrAUzrWU275q81ehIZXZstTbP+sMP+u4ueSMpI+vvtX33agtU38v1vXCtSCvff27+PnmtcyJQfjExcqDXbr/O02TseOGHvTfrmlwG28gNi0HCdhFJKjLumH5YWwsmFpKnHzLeM3UkTz/0X73zvLb9dBpMLr2v5MgflRxw2zulltEDnrgpnrmS9MkZa99D67tajhTU9ozV7lxd2feyUv7hTGXrrjdSr/Csa3ClpOPX/5brktbZ/9E0/iJw8eIu4zP4wt5odas+cL0/11g9V6In4e3MiEaKxxe9rN5aH5t+OBxdDkpvTz+sBpMfmCQ2/RCQpx9SJ3M/uuTom/fa+0oOzk14JI/nkrlzq63zgnnCdm/n/tNaKo8tYL/Jt+VGSsqLto2eaU3nLJpd36gbC9yJrA6VB26UTqNZWw6uJq2JZYykzzp1VJpdSBov8C08kUwnElfec7NbnyMJ+zxPpXOn5Kapf5vP9r/a2igVpx8+umTtH5Sst9yYTvLD5Whf2XZv+oAFrkTmqlroqdO1I3I3Qnd3N+oG3J1Wl8E29N9ylQduVFZu+bEVl3tWHrMMPhl/ojlXVBzLGGNV87nXA53D8dulom9SbQOay1e33qLGHfaJQLyp1+462nAlNoMUn37o98o9Qm1kKT790HgypW6zeUfJpr9Qskqk+NgC9lHIMxHtYXQX7fhz1+b/s0rjGnTNXm7541sQfBP/44n+07ntelDunRy8zskuGK/c6Fm1t18wr0YyTFXNQ7bSjQZd6XejPcP26Gl6vaY5bLJ8M3TLYtwcEy+62pw/117RvrAmbzUyZNk45ycb49MP5sT0w+OaXKVL/HDJiRmXP1WyOhxaX19PWjokJS/uj8XFxePHjytd+EEuIXp4mZmZSh/FAeH3+9V2MtVZ8v6+opOilbEFABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcZT5HNri4qLShQOAApTJ3HT/lIvf71f6EACkJcYWAEAcMhcAxOF7xQ4mRj/2kApPpgpLFobMPYBS+TvPAJVjbAEAxCFzAUAcMhcAxCFzAUAcMhcAxCFzAUAcMhcAxEmfzPU6zOZr7uAHHhV0XzObHd4P7Sw866jexd4AYG+lT+buobB3wO5cUfooAKiQCjM37B3sdK1olD4MAGqUtpkbnB3+tqbCbDafraxru+sNJbeFFtz2Ormtoubb4dm3BhB8zk5nfnd3ldIFAFCj9Mzc0JO2S9anJtvo9PT046Gvdc76Ooc3vNk8PjBxokVuG20xuJsabyY1+YbbBo0dDcUZSpcAQJXSMnN9LsfksQbblVydvKQvbvmuIeLsdQcS7SW2jotGuU2X3xxtuu30bHSDl+/aBw225lKd0hUAUKl0zNzg8tyKlG/K2lpjNJVKC3O+jWQ9VWraCtVjxmJpcm5Z/jHgdvRm2GzleqULAKBaafldjhFJKjIaktfIM2Jra5HEQtIEmTZjYyHgtndKLaMkLgAFpXI/1/tzTcU776GNpqjHF0heI6et4XBGYiGy1RJaje8gODfhkTydl8xx9c7oPjovcI8uAKFSuZ+r02jWloOrkrTZNY3Hqj7r1FFpYmFZyk0ML/gWnkimL7K00c5udGludjlsMWhjLWGf56l0riNL0ufemLZs7dvrMNcv2+7dsNDtBSBQKvdzs3LLj6243LPyMG3wyfgTzbkiUyxJjVXN514PdA7H7xALvrC3DWguX7VsjjaMO+wTgXhTr911tOEKk2YAUkMq93Ml45UbPav29gvm1UiGqap5yJbITl3pd6M9w/bOS+bXa5rDJss3Q7csRm1is6Krzflz7RXtC2vyViNDlqw/ewAAsLcOra+vJy0dkpIX98fi4mJmZqbShf8lfr+f/3MMwG4lRWsqjy0AwEFD5gKAOGQuAIhD5gKAOGQuAIhD5gKAOGQuAIhD5gKAOGQuAIhD5gKAOGQuAIhD5gKAOMp8r5jf71e6cABQgALfKwYA6sL3igGAIshcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcf729opDh5Q+JAA4sLZn7vq60scDAAcZYwsAIA6ZCwDikLkAIM7/AyZK5hDV+/QzAAAAAElFTkSuQmCC" /></p>
+<ul>
+<li>do not submit more than 5000 jobs to gizmo, squeue gets sluggish</li>
+<li>to run 40000 jobs submit 40 job arrays with 1000 elements each</li>
+<li>Job Arrays = # of Loops / MAXARRAYSIZE</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              14/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-15">
+          <div class="inner">
+            
+            <header><h1>Setup your storage folders</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="nv">ANALYSIS</span><span class="o">=</span><span class="s1">&#39;myProbe1&#39;</span>  <span class="c"># change for every analysis you run (2nd arg)</span>
+<span class="nv">MYSCRATCH</span><span class="o">=</span><span class="s2">&quot;/fh/scratch/delete30/pilastname_f/</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span><span class="s2">&quot;</span> 
+<span class="nv">RESULTDIR</span><span class="o">=</span><span class="s2">&quot;/fh/fast/pilastname_f/projectx/</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span><span class="s2">&quot;</span>
+</pre></div>
+
+<ul>
+<li>edit script scentipede directly   </li>
+<li>files in scratch/delete30 get <strong>removed 30 days</strong> after they have been 
+  touched last </li>
+<li><strong>fast file</strong> is best suited for <strong>result files</strong> (backed up to tape, etc)</li>
+<li>constants (UPPERCASE) are passed on as <strong>environment variables</strong> to SCRIPTS
+  called by scentipede</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              15/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-16">
+          <div class="inner">
+            
+            <header><h1>Environment variables inherited</h1></header>
+            
+            
+            <section><p>in your R code  </p>
+<div class="highlight"><pre><span class="c1">#! /usr/bin/env Rscript</span>
+
+<span class="c1"># get environment variables</span>
+MYSCRATCH <span class="o">&lt;-</span> <span class="kp">Sys.getenv</span><span class="p">(</span><span class="s">&#39;MYSCRATCH&#39;</span><span class="p">)</span>
+RESULTDIR <span class="o">&lt;-</span> <span class="kp">Sys.getenv</span><span class="p">(</span><span class="s">&#39;RESULTDIR&#39;</span><span class="p">)</span>
+STEPSIZE <span class="o">&lt;-</span> <span class="kp">as.numeric</span><span class="p">(</span><span class="kp">Sys.getenv</span><span class="p">(</span><span class="s">&#39;STEPSIZE&#39;</span><span class="p">))</span>
+TASKID <span class="o">&lt;-</span> <span class="kp">as.numeric</span><span class="p">(</span><span class="kp">Sys.getenv</span><span class="p">(</span><span class="s">&#39;SLURM_ARRAY_TASK_ID&#39;</span><span class="p">))</span>
+
+<span class="c1"># set defaults if nothing comes from environment variables</span>
+MYSCRATCH<span class="p">[</span><span class="kp">is.na</span><span class="p">(</span>MYSCRATCH<span class="p">)]</span> <span class="o">&lt;-</span> <span class="s">&#39;.&#39;</span>
+RESULTDIR<span class="p">[</span><span class="kp">is.na</span><span class="p">(</span>RESULTDIR<span class="p">)]</span> <span class="o">&lt;-</span> <span class="s">&#39;.&#39;</span>
+STEPSIZE<span class="p">[</span><span class="kp">is.na</span><span class="p">(</span>STEPSIZE<span class="p">)]</span> <span class="o">&lt;-</span> <span class="m">1</span>
+TASKID<span class="p">[</span><span class="kp">is.na</span><span class="p">(</span>TASKID<span class="p">)]</span> <span class="o">&lt;-</span> <span class="m">0</span>
+</pre></div>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              16/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-17">
+          <div class="inner">
+            
+            <header><h1>and in python ...</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="c"># get environment variables</span>
+<span class="n">MYSCRATCH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s">&#39;MYSCRATCH&#39;</span><span class="p">,</span> <span class="s">&#39;.&#39;</span><span class="p">)</span>
+<span class="n">RESULTDIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s">&#39;RESULTDIR&#39;</span><span class="p">,</span> <span class="s">&#39;.&#39;</span><span class="p">)</span>
+<span class="n">STEPSIZE</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s">&#39;STEPSIZE&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+<span class="n">TASKID</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s">&#39;SLURM_ARRAY_TASK_ID&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+</pre></div>
+
+<ul>
+<li>getting defaults is slightly simpler here </li>
+<li>TASKID AND STEPSIZE required for job arrays 
+  and we'll get to that in a minute</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              17/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-18">
+          <div class="inner">
+            
+            <header><h1>Environment vs command line</h1></header>
+            
+            
+            <section><ul>
+<li>
+<p>environment variables are <strong>inherited by all</strong> processes (scripts) launched
+  by the current script, MYSCRATCH is valid for centipede and example.R</p>
+</li>
+<li>
+<p>command line arguments need to be <strong>explicitly passed</strong> they are not implicitly 
+  inherited from a parent process </p>
+</li>
+<li>
+<p>Rule of thumb: Use environment variables for variables that <strong>do not change</strong>
+  such as the scratch folder and command line arguments for things that 
+  change such as a loop iterator, etc</p>
+</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              18/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-19">
+          <div class="inner">
+            
+            <header><h1>scentipde example</h1></header>
+            
+            
+            <section><h2>lets dive into the code ......</h2>
+<ul>
+<li>
+<p>you can look at the full code: 
+  https://raw.githubusercontent.com/FredHutch/slurm-examples/master/centipede/scentipede</p>
+</li>
+<li>
+<p>or browse to it:
+  https://github.com/FredHutch/slurm-examples/tree/master/centipede</p>
+</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              19/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-20">
+          <div class="inner">
+            
+            <header><h1>The 'prepare' phase</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="nb">echo</span> <span class="s2">&quot;submitting </span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> prepare in </span><span class="si">${</span><span class="nv">MYSCRATCH</span><span class="si">}</span><span class="s2">...&quot;</span> 
+sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span> <span class="se">\</span>
+       --mail-type<span class="o">=</span>FAIL --mail-user<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">username</span><span class="si">}</span><span class="s2">{MAILDOM}&quot;</span> <span class="se">\</span>
+       --output<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">MYSCRATCH</span><span class="si">}</span><span class="s2">/output/</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span><span class="s2">.prepare.%J&quot;</span> <span class="se">\</span>
+       --partition<span class="o">=</span><span class="si">${</span><span class="nv">PARTITION</span><span class="si">}</span> --time<span class="o">=</span>0-3 --requeue <span class="se">\</span>
+       --wrap<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> prepare dummy </span><span class="nv">$3</span><span class="s2"> </span><span class="nv">$4</span><span class="s2"> </span><span class="nv">$5</span><span class="s2"> </span><span class="nv">$6</span><span class="s2"> </span><span class="nv">$7</span><span class="s2"> </span><span class="nv">$8</span><span class="s2"> </span><span class="nv">$9</span><span class="s2">&quot;</span>
+
+<span class="c"># get a colon separated list of job ids (normally a single id)</span>
+<span class="nv">wj</span><span class="o">=</span><span class="k">$(</span>squeue -O <span class="s2">&quot;%A&quot;</span> -h -u <span class="si">${</span><span class="nv">username</span><span class="si">}</span> -n <span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span> -S i <span class="p">|</span> tr <span class="s2">&quot;\n&quot;</span> <span class="s2">&quot;:&quot;</span><span class="k">)</span>
+<span class="nv">waitforjobs</span><span class="o">=</span><span class="si">${</span><span class="nv">wj</span><span class="p">%?</span><span class="si">}</span> <span class="c">#remove the last character (:) from string</span>
+</pre></div>
+
+<ul>
+<li>set --job-name=${ANALYSIS} for all jobs </li>
+<li>adjust wall clock --time if required 
+  (the maximum time this job may use)</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              20/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-21">
+          <div class="inner">
+            
+            <header><h1>The 'run' phase</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="c"># dividing job list into multiple job arrays</span>
+<span class="nv">numjobs</span><span class="o">=</span><span class="k">$((</span><span class="si">${</span><span class="nv">listsize</span><span class="si">}</span><span class="o">/</span><span class="si">${</span><span class="nv">MAXARRAYSIZE</span><span class="si">}</span><span class="o">+</span><span class="m">1</span><span class="k">))</span>
+<span class="nv">arrupper</span><span class="o">=</span><span class="nv">$MAXARRAYSIZE</span>
+<span class="k">for</span> i in <span class="k">$(</span>seq <span class="m">1</span> <span class="nv">$numjobs</span><span class="k">)</span><span class="p">;</span> <span class="k">do</span>
+  <span class="k">if</span> <span class="o">[[</span> <span class="nv">$i</span> -eq <span class="nv">$numjobs</span> <span class="o">]]</span><span class="p">;</span> <span class="k">then</span>
+    <span class="c"># set last arraysize to remainder </span>
+    <span class="nv">arrupper</span><span class="o">=</span><span class="k">$((</span><span class="si">${</span><span class="nv">listsize</span><span class="si">}</span><span class="o">-</span><span class="si">${</span><span class="nv">arrid</span><span class="si">}</span><span class="k">))</span>
+  <span class="k">fi</span>
+  <span class="nb">echo</span> <span class="s2">&quot;submitting </span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> run in </span><span class="si">${</span><span class="nv">MYSCRATCH</span><span class="si">}</span><span class="s2">&quot;</span>
+  <span class="nb">echo</span> <span class="s2">&quot;with </span><span class="si">${</span><span class="nv">STEPSIZE</span><span class="si">}</span><span class="s2"> </span><span class="si">${</span><span class="nv">arrid</span><span class="si">}</span><span class="s2"> dependent on </span><span class="si">${</span><span class="nv">waitforjobs</span><span class="si">}</span><span class="s2">...&quot;</span>
+  sbatch --dependency<span class="o">=</span>afterok:<span class="si">${</span><span class="nv">waitforjobs</span><span class="si">}</span> --job-name<span class="o">=</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span> <span class="se">\</span>
+       --partition<span class="o">=</span><span class="si">${</span><span class="nv">PARTITION</span><span class="si">}</span> --array<span class="o">=</span>1-<span class="si">${</span><span class="nv">arrupper</span><span class="si">}</span>:<span class="si">${</span><span class="nv">STEPSIZE</span><span class="si">}</span> <span class="se">\</span>
+       --mail-type<span class="o">=</span>FAIL --mail-user<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">username</span><span class="si">}${</span><span class="nv">MAILDOM</span><span class="si">}</span><span class="s2">&quot;</span> --time<span class="o">=</span>0-1 <span class="se">\</span>
+       --output<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">MYSCRATCH</span><span class="si">}</span><span class="s2">/out/</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span><span class="s2">.run.</span><span class="si">${</span><span class="nv">arrid</span><span class="si">}</span><span class="s2">_%a_%A.%J&quot;</span> <span class="se">\</span>
+       --wrap<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> run </span><span class="si">${</span><span class="nv">arrid</span><span class="si">}</span><span class="s2"> </span><span class="nv">$3</span><span class="s2"> </span><span class="nv">$4</span><span class="s2"> </span><span class="nv">$5</span><span class="s2"> </span><span class="nv">$6</span><span class="s2"> </span><span class="nv">$7</span><span class="s2"> </span><span class="nv">$8</span><span class="s2"> </span><span class="nv">$9</span><span class="s2">&quot;</span> --requeue
+  <span class="nv">arrid</span><span class="o">=</span><span class="k">$((</span><span class="si">${</span><span class="nv">arrid</span><span class="si">}</span><span class="o">+</span><span class="si">${</span><span class="nv">MAXARRAYSIZE</span><span class="si">}</span><span class="k">))</span>
+<span class="k">done</span>
+</pre></div>
+
+<ul>
+<li>called SCRIPT to get listsize aka number of iterations:<br />
+  listsize=$(${SCRIPT} listsize) </li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              21/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-22">
+          <div class="inner">
+            
+            <header><h1>Save to tmp file and rename !</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="kr">for</span> <span class="p">(</span><span class="m">...........</span><span class="kc">...</span><span class="p">)</span> <span class="p">{</span>
+    myrnd <span class="o">&lt;-</span> <span class="kp">sample</span><span class="p">(</span>i<span class="o">:</span><span class="m">10000</span><span class="p">,</span><span class="m">1</span><span class="p">,</span>replace<span class="o">=</span><span class="bp">T</span><span class="p">)</span>        
+    <span class="c1"># save to a temp file and then rename it as last action !</span>
+    <span class="kp">save</span><span class="p">(</span>myrnd<span class="p">,</span> file<span class="o">=</span><span class="kp">paste0</span><span class="p">(</span>MYSCRATCH<span class="p">,</span><span class="s">&#39;/run/&#39;</span><span class="p">,</span>i<span class="p">,</span><span class="s">&quot;-run.dat.tmp&quot;</span><span class="p">))</span>
+    <span class="kp">file.rename</span><span class="p">(</span><span class="kp">paste0</span><span class="p">(</span>MYSCRATCH<span class="p">,</span><span class="s">&#39;/run/&#39;</span><span class="p">,</span>i<span class="p">,</span><span class="s">&quot;-run.dat.tmp&quot;</span><span class="p">),</span>
+                <span class="kp">paste0</span><span class="p">(</span>MYSCRATCH<span class="p">,</span><span class="s">&#39;/run/&#39;</span><span class="p">,</span>i<span class="p">,</span><span class="s">&quot;-run.dat&quot;</span><span class="p">))</span>
+<span class="p">}</span>
+</pre></div>
+
+<ul>
+<li>renaming is very fast, interruption unlikely</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              22/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-23">
+          <div class="inner">
+            
+            <header><h1>a job submitting more jobs</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="nb">echo</span> <span class="s2">&quot;submitting control job with args &#39;</span><span class="nv">$@</span><span class="s2">&#39; &quot;</span>
+<span class="nb">echo</span> <span class="s2">&quot;that waits and resubmits failed jobs...&quot;</span>
+sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span> <span class="se">\</span>
+       --partition<span class="o">=</span><span class="si">${</span><span class="nv">PARTITION</span><span class="si">}</span> --requeue --time<span class="o">=</span>0-4 <span class="se">\</span>
+       --mail-type<span class="o">=</span>FAIL --mail-user<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">username</span><span class="si">}${</span><span class="nv">MAILDOM</span><span class="si">}</span><span class="s2">&quot;</span> <span class="se">\</span>
+       --output<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">MYSCRATCH</span><span class="si">}</span><span class="s2">/out/</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span><span class="s2">.correct.%J&quot;</span> <span class="se">\</span>
+       --wrap<span class="o">=</span><span class="s2">&quot;RETRYFAILED=</span><span class="nv">$numjobs</span><span class="s2"> </span><span class="si">${</span><span class="nv">thisscript</span><span class="si">}</span><span class="s2"> </span><span class="nv">$1</span><span class="s2"> </span><span class="nv">$2</span><span class="s2"> </span><span class="nv">$3</span><span class="s2"> ...</span>
+</pre></div>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              23/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-24">
+          <div class="inner">
+            
+            <header><h1>rerun failed jobs</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="c"># re-run all failed jobs where the appropriate output file is missing</span>
+<span class="c"># --requeue works only for preempted jobs </span>
+<span class="k">for</span> i in <span class="k">$(</span>seq <span class="m">1</span> <span class="nv">$RETRYFAILED</span><span class="k">)</span><span class="p">;</span> <span class="k">do</span>
+    <span class="nv">id</span><span class="o">=</span><span class="k">$((</span><span class="si">${</span><span class="nv">i</span><span class="si">}</span><span class="o">*</span><span class="si">${</span><span class="nv">STEPSIZE</span><span class="si">}</span><span class="o">-</span><span class="si">${</span><span class="nv">STEPSIZE</span><span class="si">}</span><span class="o">+</span><span class="m">1</span><span class="k">))</span>
+    <span class="k">if</span> ! <span class="o">[[</span> -f <span class="s2">&quot;</span><span class="si">${</span><span class="nv">MYSCRATCH</span><span class="si">}</span><span class="s2">/run/</span><span class="si">${</span><span class="nv">i</span><span class="si">}</span><span class="s2">-run.dat&quot;</span> <span class="o">]]</span><span class="p">;</span> <span class="k">then</span>
+        <span class="nb">echo</span> <span class="s2">&quot;re-submitting </span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> run </span><span class="si">${</span><span class="nv">id</span><span class="si">}</span><span class="s2">&quot;</span>
+        sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span> <span class="se">\</span>
+               --partition<span class="o">=</span><span class="si">${</span><span class="nv">PARTITION</span><span class="si">}</span> --requeue --time<span class="o">=</span>0-2 <span class="se">\</span>
+               --mail-type<span class="o">=</span>FAIL --mail-user<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">username</span><span class="si">}${</span><span class="nv">MAILDOM</span><span class="si">}</span><span class="s2">&quot;</span> <span class="se">\</span>
+               --output<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">MYSCRATCH</span><span class="si">}</span><span class="s2">/out/</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span><span class="s2">.run2.</span><span class="si">${</span><span class="nv">i</span><span class="si">}</span><span class="s2">.%J&quot;</span> <span class="se">\</span>
+               --wrap<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> run </span><span class="si">${</span><span class="nv">id</span><span class="si">}</span><span class="s2"> </span><span class="nv">$3</span><span class="s2"> </span><span class="nv">$4</span><span class="s2"> </span><span class="nv">$5</span><span class="s2"> </span><span class="nv">$6</span><span class="s2"> </span><span class="nv">$7</span><span class="s2"> </span><span class="nv">$8</span><span class="s2"> </span><span class="nv">$9</span><span class="s2">&quot;</span>
+    <span class="k">fi</span>
+<span class="k">done</span>
+</pre></div>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              24/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-25">
+          <div class="inner">
+            
+            <header><h1>the 'merge' phase</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="nb">echo</span> <span class="s2">&quot;submitting </span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> merge </span><span class="si">${</span><span class="nv">listsize</span><span class="si">}</span><span class="s2">...&quot;</span>
+sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span> <span class="se">\</span>
+       --partition<span class="o">=</span><span class="si">${</span><span class="nv">PARTITION</span><span class="si">}</span> --requeue --time<span class="o">=</span>0-5 <span class="se">\</span>
+       --mail-type<span class="o">=</span>END,FAIL --mail-user<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">username</span><span class="si">}${</span><span class="nv">MAILDOM</span><span class="si">}</span><span class="s2">&quot;</span> <span class="se">\</span>
+       --output<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">MYSCRATCH</span><span class="si">}</span><span class="s2">/out/</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span><span class="s2">.merge.%J&quot;</span> <span class="se">\</span>
+       --wrap<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> merge </span><span class="si">${</span><span class="nv">listsize</span><span class="si">}</span><span class="s2"> </span><span class="nv">$3</span><span class="s2"> </span><span class="nv">$4</span><span class="s2"> </span><span class="nv">$5</span><span class="s2"> </span><span class="nv">$6</span><span class="s2"> </span><span class="nv">$7</span><span class="s2"> </span><span class="nv">$8</span><span class="s2"> </span><span class="nv">$9</span><span class="s2">&quot;</span>
+</pre></div>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              25/25
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+    </div>
+  </div>
+  
+  <div id="toc" class="sidebar hidden">
+    <h2>Table of Contents</h2>
+    <table>
+      <caption>Table of Contents</caption>
+      
+      <tr id="toc-row-1">
+        <th><a href="#slide:1">Running an Analysis using 40,000 cluster jobs</a></th>
+        <td><a href="#slide:1">1</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-2">
+        <th><a href="#slide:2">The restart queue</a></th>
+        <td><a href="#slide:2">2</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-3">
+        <th><a href="#slide:3">Best practices for 'restart' jobs</a></th>
+        <td><a href="#slide:3">3</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-4">
+        <th><a href="#slide:4">Definitions</a></th>
+        <td><a href="#slide:4">4</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-5">
+        <th><a href="#slide:5">The problem</a></th>
+        <td><a href="#slide:5">5</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-6">
+        <th><a href="#slide:6">how long should a loop take</a></th>
+        <td><a href="#slide:6">6</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-7">
+        <th><a href="#slide:7">saving the state of each loop</a></th>
+        <td><a href="#slide:7">7</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-8">
+        <th><a href="#slide:8">What is slowing us down in HPC?</a></th>
+        <td><a href="#slide:8">8</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-9">
+        <th><a href="#slide:9">Centipede Slurm example</a></th>
+        <td><a href="#slide:9">9</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-10">
+        <th><a href="#slide:10">The 4 phases are:</a></th>
+        <td><a href="#slide:10">10</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-11">
+        <th><a href="#slide:11">Command arguments for SCRIPT</a></th>
+        <td><a href="#slide:11">11</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-12">
+        <th><a href="#slide:12">Arguments for example.R:</a></th>
+        <td><a href="#slide:12">12</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-13">
+        <th><a href="#slide:13">scentipede setup</a></th>
+        <td><a href="#slide:13">13</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-14">
+        <th><a href="#slide:14">Job Arrays</a></th>
+        <td><a href="#slide:14">14</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-15">
+        <th><a href="#slide:15">Setup your storage folders</a></th>
+        <td><a href="#slide:15">15</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-16">
+        <th><a href="#slide:16">Environment variables inherited</a></th>
+        <td><a href="#slide:16">16</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-17">
+        <th><a href="#slide:17">and in python ...</a></th>
+        <td><a href="#slide:17">17</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-18">
+        <th><a href="#slide:18">Environment vs command line</a></th>
+        <td><a href="#slide:18">18</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-19">
+        <th><a href="#slide:19">scentipde example</a></th>
+        <td><a href="#slide:19">19</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-20">
+        <th><a href="#slide:20">The 'prepare' phase</a></th>
+        <td><a href="#slide:20">20</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-21">
+        <th><a href="#slide:21">The 'run' phase</a></th>
+        <td><a href="#slide:21">21</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-22">
+        <th><a href="#slide:22">Save to tmp file and rename !</a></th>
+        <td><a href="#slide:22">22</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-23">
+        <th><a href="#slide:23">a job submitting more jobs</a></th>
+        <td><a href="#slide:23">23</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-24">
+        <th><a href="#slide:24">rerun failed jobs</a></th>
+        <td><a href="#slide:24">24</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-25">
+        <th><a href="#slide:25">the 'merge' phase</a></th>
+        <td><a href="#slide:25">25</a></td>
+      </tr>
+      
+      
+    </table>
+  </div>
+  
+  <div id="help" class="sidebar hidden">
+    <h2>Help</h2>
+    <table>
+      <caption>Help</caption>
+      <tr>
+        <th>Table of Contents</th>
+        <td>t</td>
+      </tr>
+      <tr>
+        <th>Exposé</th>
+        <td>ESC</td>
+      </tr>
+      <tr>
+        <th>Full screen slides</th>
+        <td>e</td>
+      </tr>
+      <tr>
+        <th>Presenter View</th>
+        <td>p</td>
+      </tr>
+      <tr>
+        <th>Source Files</th>
+        <td>s</td>
+      </tr>
+      <tr>
+        <th>Slide Numbers</th>
+        <td>n</td>
+      </tr>
+      <tr>
+        <th>Toggle screen blanking</th>
+        <td>b</td>
+      </tr>
+      <tr>
+        <th>Show/hide slide context</th>
+        <td>c</td>
+      </tr>
+      <tr>
+        <th>Notes</th>
+        <td>2</td>
+      </tr>
+      <tr>
+        <th>Help</th>
+        <td>h</td>
+      </tr>
+    </table>
+    <br>
+    <strong>Generated with Darkslide 2.3.1</strong>
+  </div>
+  <script>main()</script>
+</body>
+</html>
