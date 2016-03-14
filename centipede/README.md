@@ -10,6 +10,8 @@
 
 # The restart queue 
 
+![Restart Queue](.images/restart-queue-usage.png){:style="float: right;margin-right: 7px;margin-top: 7px;"}
+
 - access to  > 1000 cores  
 - Jobs are only running if there are enough free resources 
 - jobs get killed if not enough resources in priority queue (campus)
