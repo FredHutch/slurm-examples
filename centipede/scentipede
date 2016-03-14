@@ -55,7 +55,7 @@ if [[ -z $RETRYFAILED ]]; then
     sbatch --dependency=singleton --job-name=${ANALYSIS} \
            --partition=${PARTITION} --time=0-3 --requeue \
            --mail-type=FAIL --mail-user="${username}{MAILDOM}" \
-           --output="${MYSCRATCH}/out/${ANALYSIS}.prepare.%J" \		   
+           --output="${MYSCRATCH}/out/${ANALYSIS}.prepare.%J" \
            --wrap="${SCRIPT} prepare dummy $3 $4 $5 $6 $7 $8 $9"
 
     # get a colon separated list of job ids (normally a single id)
@@ -70,16 +70,16 @@ if [[ -z $RETRYFAILED ]]; then
         arrupper=$MAXARRAYSIZE
         for i in $(seq 1 $numjobs); do
             if [[ $i -eq $numjobs ]]; then
-			    # set last arraysize to remainder 
+                # set last arraysize to remainder 
                 arrupper=$((${listsize}-${arrid}))
             fi
             echo "submitting ${SCRIPT} run in ${MYSCRATCH}"
-			echo "with ${STEPSIZE} ${arrid} dependent on ${waitforjobs}..."
-			sbatch --dependency=afterok:${waitforjobs} --job-name=${ANALYSIS} \
-				   --partition=${PARTITION} --array=1-${arrupper}:${STEPSIZE} \
-				   --mail-type=FAIL --mail-user="${username}${MAILDOM}" --time=0-1 \
-				   --output="${MYSCRATCH}/out/${ANALYSIS}.run.${arrid}_%a_%A.%J" \
-				   --wrap="${SCRIPT} run ${arrid} $3 $4 $5 $6 $7 $8 $9" --requeue
+            echo "with ${STEPSIZE} ${arrid} dependent on ${waitforjobs}..."
+            sbatch --dependency=afterok:${waitforjobs} --job-name=${ANALYSIS} \
+                   --partition=${PARTITION} --array=1-${arrupper}:${STEPSIZE} \
+                   --mail-type=FAIL --mail-user="${username}${MAILDOM}" --time=0-1 \
+                   --output="${MYSCRATCH}/out/${ANALYSIS}.run.${arrid}_%a_%A.%J" \
+                   --wrap="${SCRIPT} run ${arrid} $3 $4 $5 $6 $7 $8 $9" --requeue
             arrid=$((${arrid}+${MAXARRAYSIZE}))
         done
     else
@@ -90,7 +90,7 @@ if [[ -z $RETRYFAILED ]]; then
             echo "submitting ${SCRIPT} run in ${MYSCRATCH} with ${STEPSIZE} ${id} dependent on ${waitforjob}..."
             id=$((${i}*${STEPSIZE}-${STEPSIZE}+1))
             sbatch --dependency=afterok:${waitforjobs} --job-name=${ANALYSIS} \
-			       --partition=${PARTITION} --requeue --time=0-1 \
+                   --partition=${PARTITION} --requeue --time=0-1 \
                    --mail-type=FAIL --mail-user="${username}${MAILDOM}" \
                    --output="${MYSCRATCH}/out/${ANALYSIS}.run.${i}.%J" \
                    --wrap="${SCRIPT} run ${id} $3 $4 $5 $6 $7 $8 $9"
@@ -116,9 +116,9 @@ if [[ -z $RETRYFAILED ]]; then
     fi
     # submit control job that waits for parallel jobs to finish and then re-submits failed jobs (4h)
     echo "submitting control job with args '$@' "
-	echo "that waits and resubmits failed jobs..."
+    echo "that waits and resubmits failed jobs..."
     sbatch --dependency=singleton --job-name=${ANALYSIS} \
-	       --partition=${PARTITION} --requeue --time=0-4 \
+           --partition=${PARTITION} --requeue --time=0-4 \
            --mail-type=FAIL --mail-user="${username}${MAILDOM}" \
            --output="${MYSCRATCH}/out/${ANALYSIS}.correct.%J" \
            --wrap="RETRYFAILED=$numjobs ${thisscript} $1 $2 $3 $4 $5 $6 $7 $8 $9"
@@ -135,7 +135,7 @@ else
         if ! [[ -f "${MYSCRATCH}/run/${i}-run.dat" ]]; then
             echo "re-submitting ${SCRIPT} run ${id}"
             sbatch --dependency=singleton --job-name=${ANALYSIS} \
-			       --partition=${PARTITION} --requeue --time=0-2 \
+                   --partition=${PARTITION} --requeue --time=0-2 \
                    --mail-type=FAIL --mail-user="${username}${MAILDOM}" \
                    --output="${MYSCRATCH}/out/${ANALYSIS}.run2.${i}.%J" \
                    --wrap="${SCRIPT} run ${id} $3 $4 $5 $6 $7 $8 $9"
@@ -145,7 +145,7 @@ else
     # Merge results serially, pass 2 parameters to SCRIPT, 2nd is optional (5h)
     echo "submitting ${SCRIPT} merge ${listsize}..."
     sbatch --dependency=singleton --job-name=${ANALYSIS} \
-	       --partition=${PARTITION} --requeue --time=0-5 \
+           --partition=${PARTITION} --requeue --time=0-5 \
            --mail-type=END,FAIL --mail-user="${username}${MAILDOM}" \
            --output="${MYSCRATCH}/out/${ANALYSIS}.merge.%J" \
            --wrap="${SCRIPT} merge ${listsize} $3 $4 $5 $6 $7 $8 $9"
