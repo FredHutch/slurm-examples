@@ -41,7 +41,6 @@ if (args[1] == 'run') {
     id<-as.numeric(args[2])
     inputdata <- get(load(paste0(MYSCRATCH,'/input.dat')))
      
-    
     for (i in (id+TASKID):(id+TASKID+STEPSIZE-1)) {
         print(paste(i, Sys.time(), TASKID, STEPSIZE, sep="   "))
         myrnd <- sample(i:10000,1,replace=T)        

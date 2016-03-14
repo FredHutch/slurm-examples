@@ -23,7 +23,7 @@ MYSCRATCH="./scratch/${ANALYSIS}"  # location of your persistent scratch dir
 PARTITION='restart'        # the queue on your cluster that allows short jobs
 RESULTDIR="./result/${ANALYSIS}"  # This is a folder in permanent storage
 SCRIPT='./example.R'       # your code as (R or Python) script (1st arg)
-STEPSIZE=2                 # number of consequtive loops in SCRIPT to run in
+STEPSIZE=2                 # number of consecutive loops in SCRIPT to run in
                            # the same job / node (increase for short jobs)
                            
 ############## typically you don't have to change anything below here #######
