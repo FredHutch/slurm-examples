@@ -20,12 +20,12 @@ ANALYSIS='myAnalysis'      # change for every analysis you run (2nd arg)
 MAILDOM='@fredhutch.org'   # your email domain (for receiving error messages)
 MAXARRAYSIZE=1000          # set to 0 if you are not using slurm job arrays
 MYSCRATCH="./scratch/${ANALYSIS}"  # location of your persistent scratch dir
-PARTITION='restart'        # the queue on your cluster that allows short jobs
+PARTITION='campus'        # the queue on your cluster that allows short jobs
 RESULTDIR="./result/${ANALYSIS}"  # This is a folder in permanent storage
 SCRIPT='./example.R'       # your code as (R or Python) script (1st arg)
 STEPSIZE=2                 # number of consecutive loops in SCRIPT to run in
                            # the same job / node (increase for short jobs)
-                           
+
 ############## typically you don't have to change anything below here #######
 
 username=$(id -nu)
@@ -45,21 +45,21 @@ export MYSCRATCH           # set static vars globally so cluster jobs launched
 export RESULTDIR           # from this script can read them as an environment
 export STEPSIZE            # variables
 
-echo "using $SCRIPT with args $@..." 
+echo "  using $SCRIPT with args $@..."
 
 # run the part below if $RETRYFAILED environment var is not set or ""
 if [[ -z $RETRYFAILED ]]; then 
 
     # Preparing input data serially, pass 'prepare' parameter to SCRIPT,
-    echo "submitting ${SCRIPT} prepare in ${MYSCRATCH}..." 
+    echo "  submitting ${SCRIPT} prepare in ${MYSCRATCH}..." 
     sbatch --dependency=singleton --job-name=${ANALYSIS} \
            --partition=${PARTITION} --time=0-3 --requeue \
            --mail-type=FAIL --mail-user="${username}{MAILDOM}" \
            --output="${MYSCRATCH}/out/${ANALYSIS}.prepare.%J" \
-           --wrap="${SCRIPT} prepare dummy $3 $4 $5 $6 $7 $8 $9"
+           --wrap="${SCRIPT} prepare 0 $3 $4 $5 $6 $7 $8 $9"
 
     # get a colon separated list of job ids (normally a single id)
-    wj=$(squeue -O "%A" -h -u ${username} -n ${ANALYSIS} -S i | tr "\n" ":")
+    wj=$(squeue -o "%A" -h -u ${username} -n ${ANALYSIS} -S i | tr "\n" ":")
     waitforjobs=${wj%?} #remove the last character (:) from string
 
     # Running multiple job arrays, pass 'run' and 'id' to each SCRIPT (1h each)
@@ -72,8 +72,8 @@ if [[ -z $RETRYFAILED ]]; then
             # set last arraysize to remainder 
             arrupper=$((${listsize}-${arrid}))
         fi
-        echo "submitting ${SCRIPT} run in ${MYSCRATCH}"
-        echo "with ${STEPSIZE} ${arrid} dependent on ${waitforjobs}..."
+        echo "  submitting ${SCRIPT} run in ${MYSCRATCH} with "
+        echo "    STEPSIZE ${STEPSIZE}, arrid ${arrid} depends on job ${waitforjobs}..."
         sbatch --dependency=afterok:${waitforjobs} --job-name=${ANALYSIS} \
                --partition=${PARTITION} --array=1-${arrupper}:${STEPSIZE} \
                --mail-type=FAIL --mail-user="${username}${MAILDOM}" --time=0-1 \
@@ -81,14 +81,14 @@ if [[ -z $RETRYFAILED ]]; then
                --wrap="${SCRIPT} run ${arrid} $3 $4 $5 $6 $7 $8 $9" --requeue
         arrid=$((${arrid}+${MAXARRAYSIZE}))
     done
-    
+
     thisscript=$0
     if ! [[ "$0" = /* ]]; then
         thisscript=$(pwd)/$0
     fi
     # submit control job that waits for parallel jobs to finish and then re-submits failed jobs (4h)
-    echo "submitting control job with args '$@' "
-    echo "that waits and resubmits failed jobs..."
+    echo "  submitting control job with args '$@' "
+    echo "    that waits and resubmits failed jobs..."
     sbatch --dependency=singleton --job-name=${ANALYSIS} \
            --partition=${PARTITION} --requeue --time=0-4 \
            --mail-type=FAIL --mail-user="${username}${MAILDOM}" \
@@ -105,7 +105,7 @@ else
     for i in $(seq 1 $RETRYFAILED); do
         id=$((${i}*${STEPSIZE}-${STEPSIZE}+1))
         if ! [[ -f "${MYSCRATCH}/run/${i}-run.dat" ]]; then
-            echo "re-submitting ${SCRIPT} run ${id}"
+            echo "  re-submitting ${SCRIPT} run ${id}"
             sbatch --dependency=singleton --job-name=${ANALYSIS} \
                    --partition=${PARTITION} --requeue --time=0-2 \
                    --mail-type=FAIL --mail-user="${username}${MAILDOM}" \
@@ -115,7 +115,7 @@ else
     done
 
     # Merge results serially, pass 2 parameters to SCRIPT, 2nd is optional (5h)
-    echo "submitting ${SCRIPT} merge ${listsize}..."
+    echo "  submitting ${SCRIPT} merge ${listsize}..."
     sbatch --dependency=singleton --job-name=${ANALYSIS} \
            --partition=${PARTITION} --requeue --time=0-5 \
            --mail-type=END,FAIL --mail-user="${username}${MAILDOM}" \
@@ -124,5 +124,5 @@ else
 
 fi
 
-echo -e "monitor output with this command:"
-echo -e "tail -f ${MYSCRATCH}/out/${ANALYSIS}.*"
+echo -e "  monitor output with this command:"
+echo -e "  tail -f ${MYSCRATCH}/out/${ANALYSIS}.*"

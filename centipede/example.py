@@ -34,7 +34,7 @@ def main():
             save(myrnd, op.join(MYSCRATCH,'run','%s-run.dat.tmp' % i))
             os.rename(op.join(MYSCRATCH,'run','%s-run.dat.tmp' % i),
                       op.join(MYSCRATCH,'run','%s-run.dat' % i))
-            
+
     # merge job ########################
     if args.phase == 'merge':
         mysum = load(op.join(MYSCRATCH,'input.dat'))
@@ -51,7 +51,7 @@ def save(obj, filename):
     with open(filename, 'wb') as f:
         pickle.dump(obj, f, -1)
     return True
-    
+
 def load(filename):
     with open(filename, 'rb') as f:
         return pickle.load(f)
@@ -68,7 +68,7 @@ def parse_arguments():
     parser.add_argument( 'id', type=int, default=None, nargs='?',
         help="an id required for the run phase")    
     return parser.parse_args()
-    
+
 if __name__=="__main__":
     args = parse_arguments()
     if args.phase == 'run' and args.id == None:
