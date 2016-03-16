@@ -20,6 +20,7 @@ if(length(args) < 1){
 
 # number if iterations in a loop, typically the lenth of a matrix,array,dataframe or vector
 mylistsize<-33
+expectsum<-1000 # 1+2+3+4...+ 33 = 561 + inputdata
 
 # get the list size #########
 if (args[1] == 'listsize') {
@@ -28,7 +29,7 @@ if (args[1] == 'listsize') {
 
 # execute prepare job ##################
 if (args[1] == 'prepare') {
-    inputdata<-1000000 # some number
+    inputdata<-439 # some number, e.g. 1000-561=439
     save(inputdata, file=paste0(MYSCRATCH,'/input.dat'))
     print(paste0('initial value saved to: ', MYSCRATCH, '/input.dat'))
 }
@@ -40,13 +41,12 @@ if (args[1] == 'run') {
     }
     id<-as.numeric(args[2])
     inputdata <- get(load(paste0(MYSCRATCH,'/input.dat')))
-     
+    print(paste(Sys.time(), "arrid:" , id, "TASKID:",
+		TASKID, "STEPSIZE:", STEPSIZE))
     for (i in (id+TASKID):(id+TASKID+STEPSIZE-1)) {
-        print(paste(Sys.time(), "id:" , id, , "TASKID:", 
-		            TASKID, "STEPSIZE:", STEPSIZE, sep=" "))
-        myrnd <- sample(i:10000,1,replace=T)        
+        print(paste(Sys.time(), "i:" , i))
         # save to a temp file and then rename it as last action !
-        save(myrnd, file=paste0(MYSCRATCH,'/run/',i,"-run.dat.tmp"))
+        save(i, file=paste0(MYSCRATCH,'/run/',i,"-run.dat.tmp"))
         file.rename(paste0(MYSCRATCH,'/run/',i,"-run.dat.tmp"),
                     paste0(MYSCRATCH,'/run/',i,"-run.dat"))
     }
@@ -54,13 +54,14 @@ if (args[1] == 'run') {
 
 # merge job ###########################
 if (args[1] == 'merge') {
-    mysum <- get(load(paste0(MYSCRATCH,'/input.dat')))
+    mysum <- 0
     for (i in 1:mylistsize) {
-        print(paste(i, Sys.time(), sep="   "))
+        print(paste(Sys.time(), "i:" , i))
         outputdata <- get(load(paste0(MYSCRATCH,'/run/',i,"-run.dat")))
 	mysum <- sum(mysum, outputdata)
     }
-    print(paste('result:', mysum))
+    mysum <- sum(mysum, get(load(paste0(MYSCRATCH,'/input.dat'))))
+    print(paste('result:', mysum, 'expected:', expectsum))
     save(mysum, file=paste0(RESULTDIR,'/result.dat'))
     print(paste0('saved result to: ', RESULTDIR, '/result.dat'))
 }
