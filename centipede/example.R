@@ -21,16 +21,16 @@ if(length(args) < 1){
 # number if iterations in a loop, typically the lenth of a matrix,array,dataframe or vector
 mylistsize<-33
 
+# get the list size #########
+if (args[1] == 'listsize') {
+    cat(mylistsize)
+}
+
 # execute prepare job ##################
 if (args[1] == 'prepare') {
     inputdata<-1000000 # some number
     save(inputdata, file=paste0(MYSCRATCH,'/input.dat'))
     print(paste0('initial value saved to: ', MYSCRATCH, '/input.dat'))
-}
-
-# get the list size, perhaps based on prepare phase #########
-if (args[1] == 'listsize') {
-    cat(mylistsize)
 }
 
 # execute parallel job #################################################
@@ -42,7 +42,8 @@ if (args[1] == 'run') {
     inputdata <- get(load(paste0(MYSCRATCH,'/input.dat')))
      
     for (i in (id+TASKID):(id+TASKID+STEPSIZE-1)) {
-        print(paste(i, Sys.time(), TASKID, STEPSIZE, sep="   "))
+        print(paste(Sys.time(), "id:" , id, , "TASKID:", 
+		            TASKID, "STEPSIZE:", STEPSIZE, sep=" "))
         myrnd <- sample(i:10000,1,replace=T)        
         # save to a temp file and then rename it as last action !
         save(myrnd, file=paste0(MYSCRATCH,'/run/',i,"-run.dat.tmp"))

@@ -21,13 +21,14 @@
 
 - jobs get killed quickly if not enough resources in priority 
   queue (campus) 
-- average run time of jobs that were killed is more than 1h. 
+- average run job run time is more than 1.5h . 
 
 Recommendations:
 
-- Either write intermediate results to disks (checkpointing)
-  or make sure jobs run quickly 
-- jobs should be short but not too short, 15-30  min ideal
+- Write intermediate **results to disk** at regualr intervals
+  (check pointing not in scope for this tutorial)
+- make sure jobs run short so they are **not often interrupted**
+- jobs should be short but **not too short**, 15-30  min ideal
 
 ---
 
@@ -67,7 +68,7 @@ Recommendations:
 
 --- 
 
-# how long should a loop take 
+# how long should a loop take ?
 
 STEPSIZE = number of iterations per loop or job
 
@@ -178,9 +179,31 @@ with a STEPSIZE of 1
 
 ---
 
-# scentipede setup 
+# example.R running each phase:
 
-scentipede itself can take at least 2 arguments, SCRIPT and ANALYSIS. 
+    !R
+	# get the list size #########
+	if (args[1] == 'listsize') {
+		cat(mylistsize)
+	}	
+	# prepare  phase #########
+	if (args[1] == 'prepare') {
+	   #...prepare something
+	}	
+	# execute parallel job ###########
+	if (args[1] == 'run') {
+		# run something
+	}	
+	# merge job ############
+	if (args[1] == 'merge') {
+		# merge something
+	}
+
+---
+
+# centipede (sce) setup 
+
+sce itself can take at least 2 arguments, SCRIPT and ANALYSIS. 
 You can change these constants:
 
     !bash
@@ -196,8 +219,8 @@ You can change these constants:
                          
 to start the python example without editing the script, run it like this:
 
-    ./scentipede ./example.py myFirstPyJob  OR
-    ./scentipede ./example.py myFirstPyJob some other example.py arguments
+    ./sce ./example.py myFirstPyJob  OR
+    ./sce ./example.py myFirstPyJob some other example.py arguments
 
 ---
 
@@ -218,12 +241,12 @@ to start the python example without editing the script, run it like this:
     MYSCRATCH="/fh/scratch/delete30/pilastname_f/${ANALYSIS}" 
     RESULTDIR="/fh/fast/pilastname_f/projectx/${ANALYSIS}"
 
-- edit script scentipede directly 	
+- edit script sce directly 	
 - files in scratch/delete30 get **removed 30 days** after they have been 
   touched last 
 - **fast file** is best suited for **result files** (backed up to tape, etc)
 - constants (UPPERCASE) are passed on as **environment variables** to SCRIPTS
-  called by scentipede
+  called by sce
 
 ---
 
@@ -277,12 +300,12 @@ in your R code
   
 ---
 
-# scentipde example 
+# sce example 
 
 ## lets dive into the code ......
 
 - you can look at the full code: 
-  https://raw.githubusercontent.com/FredHutch/slurm-examples/master/centipede/scentipede
+  https://raw.githubusercontent.com/FredHutch/slurm-examples/master/centipede/sce
 
 - or browse to it:
   https://github.com/FredHutch/slurm-examples/tree/master/centipede
@@ -306,6 +329,7 @@ in your R code
 - set --job-name=${ANALYSIS} for all jobs 
 - adjust wall clock --time if required 
   (the maximum time this job may use)
+- --requeue is not for failed jobs (just preempted ones)
 
 ---	
 
@@ -397,4 +421,44 @@ in your R code
            --output="${MYSCRATCH}/out/${ANALYSIS}.merge.%J" \
            --wrap="${SCRIPT} merge ${listsize} $3 $4 $5 $6 $7 $8 $9"
 
-		   
+---
+
+# Troubleshooting I
+
+**Error: DependencyNeverSatisfied**
+
+submit a job: ./sce ./example.py X2 one two three
+
+    petersen@rhino2:/home…$ squeue -u petersen
+    JOBID    PARTITION  USER   ST  TIME  NODES NODELIST(REASON)
+    32249193  restar  petersen PD  0:00      1 (DependencyNeverSatisfied)
+    32249194  restar  petersen PD  0:00      1 (Dependency)
+
+mistake: added args that example.py does not support:
+	
+    petersen@rhino2:/home…$ cat scratch/X2/out/X2.prepare.32249433 
+    usage: example.py [-h] phase [id]
+    example.py: error: unrecognized arguments: one two three
+
+cancel jobs where dependencies will never be satisfied:
+
+    scancel --name X2
+	
+---
+
+# Troubleshooting II 
+
+**verifying output** for  ./sce ./example.py X4
+
+    petersen@rhino2:/home…$ cat scratch/X4/out/X4.run.0_1_32249707.32249709 
+    arr id:0 TASKID:1 STEPSIZE:2
+    i: 1
+    i: 2
+    petersen@rhino2:/home…$ cat scratch/X4/out/X4.run.0_3_32249707.32249710 
+    arr id:0 TASKID:3 STEPSIZE:2
+    i: 3
+    i: 4
+    petersen@rhino2:/home…$ cat scratch/X4/out/X4.run.0_5_32249707.32249711 
+    arr id:0 TASKID:5 STEPSIZE:2
+    i: 5
+    i: 6

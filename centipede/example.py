@@ -14,14 +14,14 @@ def main():
     # number if iterations in a loop, typically the lenth of a list,array or dictionary
     mylistsize=33
 
+    # get the list size #####
+    if args.phase == 'listsize':
+        print(mylistsize)
+		
     # execute prepare job ##########################
     if args.phase == 'prepare':
         inputdata=1000000 # some number
         save(inputdata, op.join(MYSCRATCH,'input.dat'))
-
-    # get the list size, perhaps based on prepare phase #####
-    if args.phase == 'listsize':
-        print(mylistsize)
 
     # execute parallel job ############################################
     if args.phase == 'run':
