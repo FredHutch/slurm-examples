@@ -228,9 +228,10 @@ to start the python example without editing the script, run it like this:
 
 ![Job Arrays](.images/job_array.png)
 
-- do not submit more than 5000 jobs to gizmo, squeue gets sluggish
-- to run 40000 jobs submit 40 job arrays with 1000 elements each
+- don't submit > 5000 jobs to gizmo (squeue sluggish!)
+- to run 40000 jobs submit 40 job arrays with 1000 elements
 - Job Arrays = # of Loops / MAXARRAYSIZE
+- more on Arrays: http://slurm.schedmd.com/job_array.html
 
 ---
 
@@ -309,6 +310,28 @@ in your R code
 
 - or browse to it:
   https://github.com/FredHutch/slurm-examples/tree/master/centipede
+
+---
+
+# 'listsize' getting the size of object
+
+the size has to be determined in SCRIPT
+
+    !R
+	# number if iterations in a loop, typically the lenth of a 
+	# matrix,array,dataframe or vector
+    mylistsize<-33
+    
+    # get the list size #########
+    if (args[1] == 'listsize') {
+        cat(mylistsize)
+    }
+	
+but it then needs to be called by centipede (sce) to get the number 
+of iterations 
+
+    !bash
+	listsize=$(${SCRIPT} listsize)   # call SCRIPT to get loop size
   
 ---
 
@@ -354,16 +377,17 @@ in your R code
 	  arrid=$((${arrid}+${MAXARRAYSIZE}))
 	done
 	
-- called SCRIPT to get listsize aka number of iterations:  
-  listsize=$(${SCRIPT} listsize) 
-
+- waiting through **--dependency=afterok:jobid:jobid** -> run this only 
+  after one or multiple prepare jobs have finished successfully 
+  
 ---
 
-# R run code (stdout) during run phase
+# R code during 'run' phase
 
     !R
 	# execute parallel job #####################################
 	id<-as.numeric(args[2])
+	# input data unused in this example 
 	inputdata <- get(load(paste0(MYSCRATCH,'/input.dat')))
 	print(paste(Sys.time(), "arrid:" , id, "TASKID:",
 		TASKID, "STEPSIZE:", STEPSIZE))
@@ -375,6 +399,8 @@ in your R code
 					paste0(MYSCRATCH,'/run/',i,"-run.dat"))
 	}
 
+- renaming is much faster than saving, interruption unlikely
+	
 ---
 
 # a test run 
@@ -395,7 +421,6 @@ expected result
 
 # output (stdout) during run phase
 
-    # testing with 
 	>$ cat scratch/myAnalysis/out/myAnalysis.run.0_1_32303098.32303105 
 
 	[1] "2016-03-15 21:27:49 arrid: 0 TASKID: 1 STEPSIZE: 2"
@@ -437,35 +462,27 @@ expected result
 	[1] "2016-03-15 21:28:07 arrid: 30 TASKID: 3 STEPSIZE: 2"
 	[1] "2016-03-15 21:28:07 i: 33"                                              	
 	
----
-
-
-# Save to tmp file and rename !
-
-    !R
-    for (..............) {
-        myrnd <- sample(i:10000,1,replace=T)        
-        # save to a temp file and then rename it as last action !
-        save(myrnd, file=paste0(MYSCRATCH,'/run/',i,"-run.dat.tmp"))
-        file.rename(paste0(MYSCRATCH,'/run/',i,"-run.dat.tmp"),
-                    paste0(MYSCRATCH,'/run/',i,"-run.dat"))
-    }
-
-- renaming is very fast, interruption unlikely
- 
 --- 
 
-# a job submitting more jobs
+# a job for re-submitting failed jobs
     
 	!bash
-    echo "submitting control job with args '$@' "
-	echo "that waits and resubmits failed jobs..."
+    thisscript=$0
+    # submit control job that waits for parallel jobs to finish 
+	# and then re-submits failed jobs (4h)
+    echo "  submitting control job with args '$@' "
+    echo "    that waits and resubmits failed jobs..."
     sbatch --dependency=singleton --job-name=${ANALYSIS} \
-	       --partition=${PARTITION} --requeue --time=0-4 \
+           --partition=${PARTITION} --requeue --time=0-4 \
            --mail-type=FAIL --mail-user="${username}${MAILDOM}" \
            --output="${MYSCRATCH}/out/${ANALYSIS}.correct.%J" \
-           --wrap="RETRYFAILED=$numjobs ${thisscript} $1 $2 $3 ...
- 
+           --wrap="RETRYFAILED=$numjobs ${thisscript} $1 $2 $3 $4"
+
+- This script is actually **submitting itself** as a job so it can 
+  wait for results in the background and then submit remediation jobs 
+- waiting through **--dependency=singleton** -> run this only after 
+  all jobs with the same job name and a smaller job IDs have finished 
+  (successful or not)
 
 ---
  
@@ -477,19 +494,23 @@ expected result
     for i in $(seq 1 $RETRYFAILED); do
         id=$((${i}*${STEPSIZE}-${STEPSIZE}+1))
         if ! [[ -f "${MYSCRATCH}/run/${i}-run.dat" ]]; then
-            echo "re-submitting ${SCRIPT} run ${id}"
-            sbatch --dependency=singleton --job-name=${ANALYSIS} \
-			       --partition=${PARTITION} --requeue --time=0-2 \
+            echo "  re-submitting ${SCRIPT} run ${id}"
+            sbatch --job-name=${ANALYSIS} --partition=${PARTITION} \
+                   --requeue --time=0-2 \
                    --mail-type=FAIL --mail-user="${username}${MAILDOM}" \
                    --output="${MYSCRATCH}/out/${ANALYSIS}.run2.${i}.%J" \
                    --wrap="${SCRIPT} run ${id} $3 $4 $5 $6 $7 $8 $9"
         fi
     done
 
+- checks for existance of output files and resubmits failed jobs
+- no job arrays required, we assume that fewer than 1% of jobs fail
 
 --- 
 
-# the 'merge' phase
+# and finally: the 'merge' phase
+
+putting it all together 
 
 	!bash
     echo "submitting ${SCRIPT} merge ${listsize}..."
@@ -499,6 +520,16 @@ expected result
            --output="${MYSCRATCH}/out/${ANALYSIS}.merge.%J" \
            --wrap="${SCRIPT} merge ${listsize} $3 $4 $5 $6 $7 $8 $9"
 
+checking the result
+	
+	!bash
+	$ tail -n 5 scratch/myAnalysis/out/myAnalysis.merge.32305115 
+	[1] "2016-03-15 22:56:02 i: 31"
+	[1] "2016-03-15 22:56:02 i: 32"
+	[1] "2016-03-15 22:56:02 i: 33"
+	[1] "result: 1000 expected: 1000"
+	[1] "saved result to: ./result/myAnalysis/result.dat"
+		   		   
 ---
 
 # Troubleshooting I
@@ -540,3 +571,15 @@ cancel jobs where dependencies will never be satisfied:
     arr id:0 TASKID:5 STEPSIZE:2
     i: 5
     i: 6
+
+--- 
+
+# How to create these slides 
+
+install darkslide and then run it against a markdown file in watchdog mode
+
+    !bash
+    $ pip3 install darkslide watchdog
+	
+    $ darkslide -w -l no -i -d ./README.html ./README.md
+

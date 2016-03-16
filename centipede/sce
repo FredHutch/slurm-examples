@@ -37,7 +37,6 @@ oldanalysis=$ANALYSIS
 [[ -z $2 ]] || ANALYSIS=$2
 MYSCRATCH=${MYSCRATCH//"$oldanalysis"/"$ANALYSIS"}
 RESULTDIR=${RESULTDIR//"$oldanalysis"/"$ANALYSIS"}
-[[ -d ${MYSCRATCH}/out ]] && echo "${MYSCRATCH}/out already exists !!"
 hash ${SCRIPT} 2>/dev/null || { echo "${SCRIPT} not found, exiting !!" ; exit ; }
 mkdir -p "${MYSCRATCH}/out"
 mkdir -p "${MYSCRATCH}/run"
@@ -50,6 +49,8 @@ echo "  using $SCRIPT with args $@..."
 
 # run the part below if $RETRYFAILED environment var is not set or ""
 if [[ -z $RETRYFAILED ]]; then 
+
+    [[ -d ${MYSCRATCH}/out ]] && echo "${MYSCRATCH}/out already exists !!"
 
     # Preparing input data serially, pass 'prepare' parameter to SCRIPT,
     echo "  submitting ${SCRIPT} prepare in ${MYSCRATCH}..." 
