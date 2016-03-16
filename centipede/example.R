@@ -44,6 +44,7 @@ if (args[1] == 'run') {
     print(paste(Sys.time(), "arrid:" , id, "TASKID:",
 		TASKID, "STEPSIZE:", STEPSIZE))
     for (i in (id+TASKID):(id+TASKID+STEPSIZE-1)) {
+	    if (i > mylistsize) {break}
         print(paste(Sys.time(), "i:" , i))
         # save to a temp file and then rename it as last action !
         save(i, file=paste0(MYSCRATCH,'/run/',i,"-run.dat.tmp"))

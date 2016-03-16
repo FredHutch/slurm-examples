@@ -359,7 +359,85 @@ in your R code
 
 ---
 
+# R run code (stdout) during run phase
 
+    !R
+	# execute parallel job #####################################
+	id<-as.numeric(args[2])
+	inputdata <- get(load(paste0(MYSCRATCH,'/input.dat')))
+	print(paste(Sys.time(), "arrid:" , id, "TASKID:",
+		TASKID, "STEPSIZE:", STEPSIZE))
+	for (i in (id+TASKID):(id+TASKID+STEPSIZE-1)) {
+		print(paste(Sys.time(), "i:" , i))
+		# save to a temp file and then rename it as last action !
+		save(i, file=paste0(MYSCRATCH,'/run/',i,"-run.dat.tmp"))
+		file.rename(paste0(MYSCRATCH,'/run/',i,"-run.dat.tmp"),
+					paste0(MYSCRATCH,'/run/',i,"-run.dat"))
+	}
+
+---
+
+# a test run 
+	
+Now lets reduce MAXARRAYSIZE
+
+- MAXARRAYSIZE = 6
+- STEPSIZE = 2
+- listsize = 33 (total number of loops)
+
+expected result  
+
+- This should be 5 JobArrays each with 3 TASKS (Jobs) each and 2 STEPS per TASK
+- The last Array has only 2 TASKS, one with 2 STEPS and one with 
+  one remaining STEP
+
+---
+
+# output (stdout) during run phase
+
+    # testing with 
+	>$ cat scratch/myAnalysis/out/myAnalysis.run.0_1_32303098.32303105 
+
+	[1] "2016-03-15 21:27:49 arrid: 0 TASKID: 1 STEPSIZE: 2"
+	[1] "2016-03-15 21:27:49 i: 1"
+	[1] "2016-03-15 21:27:49 i: 2"
+
+	[1] "2016-03-15 21:28:01 arrid: 0 TASKID: 3 STEPSIZE: 2"
+	[1] "2016-03-15 21:28:01 i: 3"
+	[1] "2016-03-15 21:28:01 i: 4"
+
+	[1] "2016-03-15 21:28:03 arrid: 0 TASKID: 5 STEPSIZE: 2"
+	[1] "2016-03-15 21:28:03 i: 5"
+	[1] "2016-03-15 21:28:03 i: 6"
+
+	[1] "2016-03-15 21:28:03 arrid: 6 TASKID: 1 STEPSIZE: 2"
+	[1] "2016-03-15 21:28:03 i: 7"
+	[1] "2016-03-15 21:28:03 i: 8"
+
+	[1] "2016-03-15 21:28:03 arrid: 6 TASKID: 3 STEPSIZE: 2"
+	[1] "2016-03-15 21:28:03 i: 9"
+	[1] "2016-03-15 21:28:03 i: 10"
+
+	[1] "2016-03-15 21:28:03 arrid: 6 TASKID: 5 STEPSIZE: 2"
+	[1] "2016-03-15 21:28:03 i: 11"
+	[1] "2016-03-15 21:28:03 i: 12"
+
+	[1] "2016-03-15 21:28:38 arrid: 12 TASKID: 1 STEPSIZE: 2"
+	[1] "2016-03-15 21:28:38 i: 13"
+	[1] "2016-03-15 21:28:38 i: 14"
+	
+	.
+	.
+	.
+
+	[1] "2016-03-15 21:28:07 arrid: 30 TASKID: 1 STEPSIZE: 2"
+	[1] "2016-03-15 21:28:07 i: 31"
+	[1] "2016-03-15 21:28:07 i: 32"
+
+	[1] "2016-03-15 21:28:07 arrid: 30 TASKID: 3 STEPSIZE: 2"
+	[1] "2016-03-15 21:28:07 i: 33"                                              	
+	
+---
 
 
 # Save to tmp file and rename !
