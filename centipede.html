@@ -1336,7 +1336,7 @@ pre { background: #fdf6e3; color: #586e75; }
 <li>The script had a loop with 40k iterations, each running ~ 10m</li>
 <li>would run ~270 days using a single CPU</li>
 <li>a good case for our restart queue if we can make it run parallel</li>
-<li>This readme is also a <a href="http://fredhutch.github.io/slurm-examples">presentation</a></li>
+<li>This readme is also a <a href="http://fredhutch.github.io/slurm-examples/centipede.html">presentation</a></li>
 </ul></section>
             
           </div>
@@ -1354,7 +1354,7 @@ pre { background: #fdf6e3; color: #586e75; }
             </aside>
             
             <aside class="page_number">
-              1/25
+              1/32
             </aside>
           </footer>
         </div>
@@ -1389,7 +1389,7 @@ pre { background: #fdf6e3; color: #586e75; }
             </aside>
             
             <aside class="page_number">
-              2/25
+              2/32
             </aside>
           </footer>
         </div>
@@ -1406,13 +1406,14 @@ pre { background: #fdf6e3; color: #586e75; }
             <section><ul>
 <li>jobs get killed quickly if not enough resources in priority 
   queue (campus) </li>
-<li>average run time of jobs that were killed is more than 1h. </li>
+<li>average run job run time is more than 1.5h . </li>
 </ul>
 <p>Recommendations:</p>
 <ul>
-<li>Either write intermediate results to disks (checkpointing)
-  or make sure jobs run quickly </li>
-<li>jobs should be short but not too short, 15-30  min ideal</li>
+<li>Write intermediate <strong>results to disk</strong> at regualr intervals
+  (check pointing not in scope for this tutorial)</li>
+<li>make sure jobs run short so they are <strong>not often interrupted</strong></li>
+<li>jobs should be short but <strong>not too short</strong>, 15-30  min ideal</li>
 </ul></section>
             
           </div>
@@ -1430,7 +1431,7 @@ pre { background: #fdf6e3; color: #586e75; }
             </aside>
             
             <aside class="page_number">
-              3/25
+              3/32
             </aside>
           </footer>
         </div>
@@ -1478,7 +1479,7 @@ pre { background: #fdf6e3; color: #586e75; }
             </aside>
             
             <aside class="page_number">
-              4/25
+              4/32
             </aside>
           </footer>
         </div>
@@ -1526,7 +1527,7 @@ pre { background: #fdf6e3; color: #586e75; }
             </aside>
             
             <aside class="page_number">
-              5/25
+              5/32
             </aside>
           </footer>
         </div>
@@ -1537,7 +1538,7 @@ pre { background: #fdf6e3; color: #586e75; }
         <div class="slide has_code slide-6">
           <div class="inner">
             
-            <header><h1>how long should a loop take</h1></header>
+            <header><h1>how long should a loop take ?</h1></header>
             
             
             <section><p>STEPSIZE = number of iterations per loop or job</p>
@@ -1576,7 +1577,7 @@ pre { background: #fdf6e3; color: #586e75; }
             </aside>
             
             <aside class="page_number">
-              6/25
+              6/32
             </aside>
           </footer>
         </div>
@@ -1626,7 +1627,7 @@ pre { background: #fdf6e3; color: #586e75; }
             </aside>
             
             <aside class="page_number">
-              7/25
+              7/32
             </aside>
           </footer>
         </div>
@@ -1666,7 +1667,7 @@ pre { background: #fdf6e3; color: #586e75; }
             </aside>
             
             <aside class="page_number">
-              8/25
+              8/32
             </aside>
           </footer>
         </div>
@@ -1705,7 +1706,7 @@ pre { background: #fdf6e3; color: #586e75; }
             </aside>
             
             <aside class="page_number">
-              9/25
+              9/32
             </aside>
           </footer>
         </div>
@@ -1749,7 +1750,7 @@ pre { background: #fdf6e3; color: #586e75; }
             </aside>
             
             <aside class="page_number">
-              10/25
+              10/32
             </aside>
           </footer>
         </div>
@@ -1789,7 +1790,7 @@ pre { background: #fdf6e3; color: #586e75; }
             </aside>
             
             <aside class="page_number">
-              11/25
+              11/32
             </aside>
           </footer>
         </div>
@@ -1826,7 +1827,7 @@ pre { background: #fdf6e3; color: #586e75; }
             </aside>
             
             <aside class="page_number">
-              12/25
+              12/32
             </aside>
           </footer>
         </div>
@@ -1837,10 +1838,58 @@ pre { background: #fdf6e3; color: #586e75; }
         <div class="slide has_code slide-13">
           <div class="inner">
             
-            <header><h1>scentipede setup</h1></header>
+            <header><h1>example.R running each phase:</h1></header>
             
             
-            <section><p>scentipede itself can take at least 2 arguments, SCRIPT and ANALYSIS. 
+            <section><div class="highlight"><pre><span class="c1"># get the list size #########</span>
+<span class="kr">if</span> <span class="p">(</span><span class="kp">args</span><span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;listsize&#39;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kp">cat</span><span class="p">(</span>mylistsize<span class="p">)</span>
+<span class="p">}</span>   
+<span class="c1"># prepare  phase #########</span>
+<span class="kr">if</span> <span class="p">(</span><span class="kp">args</span><span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;prepare&#39;</span><span class="p">)</span> <span class="p">{</span>
+   <span class="c1">#...prepare something</span>
+<span class="p">}</span>   
+<span class="c1"># execute parallel job ###########</span>
+<span class="kr">if</span> <span class="p">(</span><span class="kp">args</span><span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;run&#39;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1"># run something</span>
+<span class="p">}</span>   
+<span class="c1"># merge job ############</span>
+<span class="kr">if</span> <span class="p">(</span><span class="kp">args</span><span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;merge&#39;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="c1"># merge something</span>
+<span class="p">}</span>
+</pre></div>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              13/32
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-14">
+          <div class="inner">
+            
+            <header><h1>centipede (sce) setup</h1></header>
+            
+            
+            <section><p>sce itself can take at least 2 arguments, SCRIPT and ANALYSIS. 
 You can change these constants:</p>
 <div class="highlight"><pre><span class="nv">ANALYSIS</span><span class="o">=</span><span class="s1">&#39;myProbe1&#39;</span>  <span class="c"># change for every analysis you run (2nd arg)</span>
 <span class="nv">MAILDOM</span><span class="o">=</span><span class="s1">&#39;@fhcrc.org&#39;</span> <span class="c"># your email domain (for error messages)</span>
@@ -1854,8 +1903,8 @@ You can change these constants:</p>
 </pre></div>
 
 <p>to start the python example without editing the script, run it like this:</p>
-<pre><code>./scentipede ./example.py myFirstPyJob  OR
-./scentipede ./example.py myFirstPyJob some other example.py arguments
+<pre><code>./sce ./example.py myFirstPyJob  OR
+./sce ./example.py myFirstPyJob some other example.py arguments
 </code></pre></section>
             
           </div>
@@ -1873,7 +1922,7 @@ You can change these constants:</p>
             </aside>
             
             <aside class="page_number">
-              13/25
+              14/32
             </aside>
           </footer>
         </div>
@@ -1881,7 +1930,7 @@ You can change these constants:</p>
       
       <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
       <div class="slide-wrapper">
-        <div class="slide slide-14">
+        <div class="slide slide-15">
           <div class="inner">
             
             <header><h1>Job Arrays</h1></header>
@@ -1889,9 +1938,10 @@ You can change these constants:</p>
             
             <section><p><img alt="Job Arrays" src="data:image/png;base64,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YmFZyk0ML/gWnkimL7K00c5udGludjlsMWhjLWGf56l0riNL0ufemLZs7dvrMNcv2+7dsNDtBSBQKvdzs3LLj6243LPyMG3wyfgTzbkiUyxJjVXN514PdA7H7xALvrC3DWguX7VsjjaMO+wTgXhTr911tOEKk2YAUkMq93Ml45UbPav29gvm1UiGqap5yJbITl3pd6M9w/bOS+bXa5rDJss3Q7csRm1is6Krzflz7RXtC2vyViNDlqw/ewAAsLcOra+vJy0dkpIX98fi4mJmZqbShf8lfr+f/3MMwG4lRWsqjy0AwEFD5gKAOGQuAIhD5gKAOGQuAIhD5gKAOGQuAIhD5gKAOGQuAIhD5gKAOGQuAIhD5gKAOMp8r5jf71e6cABQgALfKwYA6sL3igGAIshcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcchcABCHzAUAcf729opDh5Q+JAA4sLZn7vq60scDAAcZYwsAIA6ZCwDikLkAIM7/AyZK5hDV+/QzAAAAAElFTkSuQmCC" /></p>
 <ul>
-<li>do not submit more than 5000 jobs to gizmo, squeue gets sluggish</li>
-<li>to run 40000 jobs submit 40 job arrays with 1000 elements each</li>
+<li>don't submit &gt; 5000 jobs to gizmo (squeue sluggish!)</li>
+<li>to run 40000 jobs submit 40 job arrays with 1000 elements</li>
 <li>Job Arrays = # of Loops / MAXARRAYSIZE</li>
+<li>more on Arrays: http://slurm.schedmd.com/job_array.html</li>
 </ul></section>
             
           </div>
@@ -1909,7 +1959,7 @@ You can change these constants:</p>
             </aside>
             
             <aside class="page_number">
-              14/25
+              15/32
             </aside>
           </footer>
         </div>
@@ -1917,7 +1967,7 @@ You can change these constants:</p>
       
       <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
       <div class="slide-wrapper">
-        <div class="slide has_code slide-15">
+        <div class="slide has_code slide-16">
           <div class="inner">
             
             <header><h1>Setup your storage folders</h1></header>
@@ -1929,12 +1979,12 @@ You can change these constants:</p>
 </pre></div>
 
 <ul>
-<li>edit script scentipede directly   </li>
+<li>edit script sce directly  </li>
 <li>files in scratch/delete30 get <strong>removed 30 days</strong> after they have been 
   touched last </li>
 <li><strong>fast file</strong> is best suited for <strong>result files</strong> (backed up to tape, etc)</li>
 <li>constants (UPPERCASE) are passed on as <strong>environment variables</strong> to SCRIPTS
-  called by scentipede</li>
+  called by sce</li>
 </ul></section>
             
           </div>
@@ -1952,7 +2002,7 @@ You can change these constants:</p>
             </aside>
             
             <aside class="page_number">
-              15/25
+              16/32
             </aside>
           </footer>
         </div>
@@ -1960,7 +2010,7 @@ You can change these constants:</p>
       
       <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
       <div class="slide-wrapper">
-        <div class="slide has_code slide-16">
+        <div class="slide has_code slide-17">
           <div class="inner">
             
             <header><h1>Environment variables inherited</h1></header>
@@ -1998,7 +2048,7 @@ TASKID<span class="p">[</span><span class="kp">is.na</span><span class="p">(</sp
             </aside>
             
             <aside class="page_number">
-              16/25
+              17/32
             </aside>
           </footer>
         </div>
@@ -2006,7 +2056,7 @@ TASKID<span class="p">[</span><span class="kp">is.na</span><span class="p">(</sp
       
       <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
       <div class="slide-wrapper">
-        <div class="slide has_code slide-17">
+        <div class="slide has_code slide-18">
           <div class="inner">
             
             <header><h1>and in python ...</h1></header>
@@ -2040,7 +2090,7 @@ TASKID<span class="p">[</span><span class="kp">is.na</span><span class="p">(</sp
             </aside>
             
             <aside class="page_number">
-              17/25
+              18/32
             </aside>
           </footer>
         </div>
@@ -2048,7 +2098,7 @@ TASKID<span class="p">[</span><span class="kp">is.na</span><span class="p">(</sp
       
       <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
       <div class="slide-wrapper">
-        <div class="slide slide-18">
+        <div class="slide slide-19">
           <div class="inner">
             
             <header><h1>Environment vs command line</h1></header>
@@ -2085,7 +2135,7 @@ TASKID<span class="p">[</span><span class="kp">is.na</span><span class="p">(</sp
             </aside>
             
             <aside class="page_number">
-              18/25
+              19/32
             </aside>
           </footer>
         </div>
@@ -2093,17 +2143,17 @@ TASKID<span class="p">[</span><span class="kp">is.na</span><span class="p">(</sp
       
       <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
       <div class="slide-wrapper">
-        <div class="slide slide-19">
+        <div class="slide slide-20">
           <div class="inner">
             
-            <header><h1>scentipde example</h1></header>
+            <header><h1>sce example</h1></header>
             
             
             <section><h2>lets dive into the code ......</h2>
 <ul>
 <li>
 <p>you can look at the full code: 
-  https://raw.githubusercontent.com/FredHutch/slurm-examples/master/centipede/scentipede</p>
+  https://raw.githubusercontent.com/FredHutch/slurm-examples/master/centipede/sce</p>
 </li>
 <li>
 <p>or browse to it:
@@ -2126,7 +2176,7 @@ TASKID<span class="p">[</span><span class="kp">is.na</span><span class="p">(</sp
             </aside>
             
             <aside class="page_number">
-              19/25
+              20/32
             </aside>
           </footer>
         </div>
@@ -2134,7 +2184,53 @@ TASKID<span class="p">[</span><span class="kp">is.na</span><span class="p">(</sp
       
       <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
       <div class="slide-wrapper">
-        <div class="slide has_code slide-20">
+        <div class="slide has_code slide-21">
+          <div class="inner">
+            
+            <header><h1>'listsize' getting the size of object</h1></header>
+            
+            
+            <section><p>the size has to be determined in SCRIPT</p>
+<div class="highlight"><pre><span class="c1"># number if iterations in a loop, typically the lenth of a </span>
+<span class="c1"># matrix,array,dataframe or vector</span>
+mylistsize<span class="o">&lt;-</span><span class="m">33</span>
+
+<span class="c1"># get the list size #########</span>
+<span class="kr">if</span> <span class="p">(</span><span class="kp">args</span><span class="p">[</span><span class="m">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;listsize&#39;</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kp">cat</span><span class="p">(</span>mylistsize<span class="p">)</span>
+<span class="p">}</span>
+</pre></div>
+
+<p>but it then needs to be called by centipede (sce) to get the number 
+of iterations </p>
+<div class="highlight"><pre><span class="nv">listsize</span><span class="o">=</span><span class="k">$(</span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span> listsize<span class="k">)</span>   <span class="c"># call SCRIPT to get loop size</span>
+</pre></div>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              21/32
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-22">
           <div class="inner">
             
             <header><h1>The 'prepare' phase</h1></header>
@@ -2156,6 +2252,7 @@ sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=
 <li>set --job-name=${ANALYSIS} for all jobs </li>
 <li>adjust wall clock --time if required 
   (the maximum time this job may use)</li>
+<li>--requeue is not for failed jobs (just preempted ones)</li>
 </ul></section>
             
           </div>
@@ -2173,7 +2270,7 @@ sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=
             </aside>
             
             <aside class="page_number">
-              20/25
+              22/32
             </aside>
           </footer>
         </div>
@@ -2181,7 +2278,7 @@ sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=
       
       <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
       <div class="slide-wrapper">
-        <div class="slide has_code slide-21">
+        <div class="slide has_code slide-23">
           <div class="inner">
             
             <header><h1>The 'run' phase</h1></header>
@@ -2207,8 +2304,8 @@ sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=
 </pre></div>
 
 <ul>
-<li>called SCRIPT to get listsize aka number of iterations:<br />
-  listsize=$(${SCRIPT} listsize) </li>
+<li>waiting through <strong>--dependency=afterok:jobid:jobid</strong> -&gt; run this only 
+  after one or multiple prepare jobs have finished successfully </li>
 </ul></section>
             
           </div>
@@ -2226,88 +2323,7 @@ sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=
             </aside>
             
             <aside class="page_number">
-              21/25
-            </aside>
-          </footer>
-        </div>
-      </div>
-      
-      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
-      <div class="slide-wrapper">
-        <div class="slide has_code slide-22">
-          <div class="inner">
-            
-            <header><h1>Save to tmp file and rename !</h1></header>
-            
-            
-            <section><div class="highlight"><pre><span class="kr">for</span> <span class="p">(</span><span class="m">...........</span><span class="kc">...</span><span class="p">)</span> <span class="p">{</span>
-    myrnd <span class="o">&lt;-</span> <span class="kp">sample</span><span class="p">(</span>i<span class="o">:</span><span class="m">10000</span><span class="p">,</span><span class="m">1</span><span class="p">,</span>replace<span class="o">=</span><span class="bp">T</span><span class="p">)</span>        
-    <span class="c1"># save to a temp file and then rename it as last action !</span>
-    <span class="kp">save</span><span class="p">(</span>myrnd<span class="p">,</span> file<span class="o">=</span><span class="kp">paste0</span><span class="p">(</span>MYSCRATCH<span class="p">,</span><span class="s">&#39;/run/&#39;</span><span class="p">,</span>i<span class="p">,</span><span class="s">&quot;-run.dat.tmp&quot;</span><span class="p">))</span>
-    <span class="kp">file.rename</span><span class="p">(</span><span class="kp">paste0</span><span class="p">(</span>MYSCRATCH<span class="p">,</span><span class="s">&#39;/run/&#39;</span><span class="p">,</span>i<span class="p">,</span><span class="s">&quot;-run.dat.tmp&quot;</span><span class="p">),</span>
-                <span class="kp">paste0</span><span class="p">(</span>MYSCRATCH<span class="p">,</span><span class="s">&#39;/run/&#39;</span><span class="p">,</span>i<span class="p">,</span><span class="s">&quot;-run.dat&quot;</span><span class="p">))</span>
-<span class="p">}</span>
-</pre></div>
-
-<ul>
-<li>renaming is very fast, interruption unlikely</li>
-</ul></section>
-            
-          </div>
-          <div class="presenter_notes">
-            <header><h1>Presenter Notes</h1></header>
-            <section>
-            
-            </section>
-          </div>
-          <footer>
-            
-            
-            <aside class="source">
-              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
-            </aside>
-            
-            <aside class="page_number">
-              22/25
-            </aside>
-          </footer>
-        </div>
-      </div>
-      
-      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
-      <div class="slide-wrapper">
-        <div class="slide has_code slide-23">
-          <div class="inner">
-            
-            <header><h1>a job submitting more jobs</h1></header>
-            
-            
-            <section><div class="highlight"><pre><span class="nb">echo</span> <span class="s2">&quot;submitting control job with args &#39;</span><span class="nv">$@</span><span class="s2">&#39; &quot;</span>
-<span class="nb">echo</span> <span class="s2">&quot;that waits and resubmits failed jobs...&quot;</span>
-sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span> <span class="se">\</span>
-       --partition<span class="o">=</span><span class="si">${</span><span class="nv">PARTITION</span><span class="si">}</span> --requeue --time<span class="o">=</span>0-4 <span class="se">\</span>
-       --mail-type<span class="o">=</span>FAIL --mail-user<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">username</span><span class="si">}${</span><span class="nv">MAILDOM</span><span class="si">}</span><span class="s2">&quot;</span> <span class="se">\</span>
-       --output<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">MYSCRATCH</span><span class="si">}</span><span class="s2">/out/</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span><span class="s2">.correct.%J&quot;</span> <span class="se">\</span>
-       --wrap<span class="o">=</span><span class="s2">&quot;RETRYFAILED=</span><span class="nv">$numjobs</span><span class="s2"> </span><span class="si">${</span><span class="nv">thisscript</span><span class="si">}</span><span class="s2"> </span><span class="nv">$1</span><span class="s2"> </span><span class="nv">$2</span><span class="s2"> </span><span class="nv">$3</span><span class="s2"> ...</span>
-</pre></div>
-</section>
-            
-          </div>
-          <div class="presenter_notes">
-            <header><h1>Presenter Notes</h1></header>
-            <section>
-            
-            </section>
-          </div>
-          <footer>
-            
-            
-            <aside class="source">
-              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
-            </aside>
-            
-            <aside class="page_number">
-              23/25
+              23/32
             </aside>
           </footer>
         </div>
@@ -2318,6 +2334,216 @@ sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=
         <div class="slide has_code slide-24">
           <div class="inner">
             
+            <header><h1>R code during 'run' phase</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="c1"># execute parallel job #####################################</span>
+id<span class="o">&lt;-</span><span class="kp">as.numeric</span><span class="p">(</span><span class="kp">args</span><span class="p">[</span><span class="m">2</span><span class="p">])</span>
+<span class="c1"># input data unused in this example </span>
+inputdata <span class="o">&lt;-</span> <span class="kp">get</span><span class="p">(</span><span class="kp">load</span><span class="p">(</span><span class="kp">paste0</span><span class="p">(</span>MYSCRATCH<span class="p">,</span><span class="s">&#39;/input.dat&#39;</span><span class="p">)))</span>
+<span class="kp">print</span><span class="p">(</span><span class="kp">paste</span><span class="p">(</span><span class="kp">Sys.time</span><span class="p">(),</span> <span class="s">&quot;arrid:&quot;</span> <span class="p">,</span> id<span class="p">,</span> <span class="s">&quot;TASKID:&quot;</span><span class="p">,</span>
+    TASKID<span class="p">,</span> <span class="s">&quot;STEPSIZE:&quot;</span><span class="p">,</span> STEPSIZE<span class="p">))</span>
+<span class="kr">for</span> <span class="p">(</span>i <span class="kr">in</span> <span class="p">(</span>id<span class="o">+</span>TASKID<span class="p">)</span><span class="o">:</span><span class="p">(</span>id<span class="o">+</span>TASKID<span class="o">+</span>STEPSIZE<span class="m">-1</span><span class="p">))</span> <span class="p">{</span>
+    <span class="kp">print</span><span class="p">(</span><span class="kp">paste</span><span class="p">(</span><span class="kp">Sys.time</span><span class="p">(),</span> <span class="s">&quot;i:&quot;</span> <span class="p">,</span> i<span class="p">))</span>
+    <span class="c1"># save to a temp file and then rename it as last action !</span>
+    <span class="kp">save</span><span class="p">(</span>i<span class="p">,</span> file<span class="o">=</span><span class="kp">paste0</span><span class="p">(</span>MYSCRATCH<span class="p">,</span><span class="s">&#39;/run/&#39;</span><span class="p">,</span>i<span class="p">,</span><span class="s">&quot;-run.dat.tmp&quot;</span><span class="p">))</span>
+    <span class="kp">file.rename</span><span class="p">(</span><span class="kp">paste0</span><span class="p">(</span>MYSCRATCH<span class="p">,</span><span class="s">&#39;/run/&#39;</span><span class="p">,</span>i<span class="p">,</span><span class="s">&quot;-run.dat.tmp&quot;</span><span class="p">),</span>
+                <span class="kp">paste0</span><span class="p">(</span>MYSCRATCH<span class="p">,</span><span class="s">&#39;/run/&#39;</span><span class="p">,</span>i<span class="p">,</span><span class="s">&quot;-run.dat&quot;</span><span class="p">))</span>
+<span class="p">}</span>
+</pre></div>
+
+<ul>
+<li>renaming is much faster than saving, interruption unlikely</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              24/32
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-25">
+          <div class="inner">
+            
+            <header><h1>a test run</h1></header>
+            
+            
+            <section><p>Now lets reduce MAXARRAYSIZE</p>
+<ul>
+<li>MAXARRAYSIZE = 6</li>
+<li>STEPSIZE = 2</li>
+<li>listsize = 33 (total number of loops)</li>
+</ul>
+<p>expected result  </p>
+<ul>
+<li>This should be 5 JobArrays each with 3 TASKS (Jobs) each and 2 STEPS per TASK</li>
+<li>The last Array has only 2 TASKS, one with 2 STEPS and one with 
+  one remaining STEP</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              25/32
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-26">
+          <div class="inner">
+            
+            <header><h1>output (stdout) during run phase</h1></header>
+            
+            
+            <section><pre><code>&gt;$ cat scratch/myAnalysis/out/myAnalysis.run.0_1_32303098.32303105
+
+[1] "2016-03-15 21:27:49 arrid: 0 TASKID: 1 STEPSIZE: 2"
+[1] "2016-03-15 21:27:49 i: 1"
+[1] "2016-03-15 21:27:49 i: 2"
+
+[1] "2016-03-15 21:28:01 arrid: 0 TASKID: 3 STEPSIZE: 2"
+[1] "2016-03-15 21:28:01 i: 3"
+[1] "2016-03-15 21:28:01 i: 4"
+
+[1] "2016-03-15 21:28:03 arrid: 0 TASKID: 5 STEPSIZE: 2"
+[1] "2016-03-15 21:28:03 i: 5"
+[1] "2016-03-15 21:28:03 i: 6"
+
+[1] "2016-03-15 21:28:03 arrid: 6 TASKID: 1 STEPSIZE: 2"
+[1] "2016-03-15 21:28:03 i: 7"
+[1] "2016-03-15 21:28:03 i: 8"
+
+[1] "2016-03-15 21:28:03 arrid: 6 TASKID: 3 STEPSIZE: 2"
+[1] "2016-03-15 21:28:03 i: 9"
+[1] "2016-03-15 21:28:03 i: 10"
+
+[1] "2016-03-15 21:28:03 arrid: 6 TASKID: 5 STEPSIZE: 2"
+[1] "2016-03-15 21:28:03 i: 11"
+[1] "2016-03-15 21:28:03 i: 12"
+
+[1] "2016-03-15 21:28:38 arrid: 12 TASKID: 1 STEPSIZE: 2"
+[1] "2016-03-15 21:28:38 i: 13"
+[1] "2016-03-15 21:28:38 i: 14"
+
+.
+.
+.
+
+[1] "2016-03-15 21:28:07 arrid: 30 TASKID: 1 STEPSIZE: 2"
+[1] "2016-03-15 21:28:07 i: 31"
+[1] "2016-03-15 21:28:07 i: 32"
+
+[1] "2016-03-15 21:28:07 arrid: 30 TASKID: 3 STEPSIZE: 2"
+[1] "2016-03-15 21:28:07 i: 33"
+</code></pre></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              26/32
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-27">
+          <div class="inner">
+            
+            <header><h1>a job for re-submitting failed jobs</h1></header>
+            
+            
+            <section><div class="highlight"><pre><span class="nv">thisscript</span><span class="o">=</span><span class="nv">$0</span>
+<span class="c"># submit control job that waits for parallel jobs to finish </span>
+<span class="c"># and then re-submits failed jobs (4h)</span>
+<span class="nb">echo</span> <span class="s2">&quot;  submitting control job with args &#39;</span><span class="nv">$@</span><span class="s2">&#39; &quot;</span>
+<span class="nb">echo</span> <span class="s2">&quot;    that waits and resubmits failed jobs...&quot;</span>
+sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span> <span class="se">\</span>
+       --partition<span class="o">=</span><span class="si">${</span><span class="nv">PARTITION</span><span class="si">}</span> --requeue --time<span class="o">=</span>0-4 <span class="se">\</span>
+       --mail-type<span class="o">=</span>FAIL --mail-user<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">username</span><span class="si">}${</span><span class="nv">MAILDOM</span><span class="si">}</span><span class="s2">&quot;</span> <span class="se">\</span>
+       --output<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">MYSCRATCH</span><span class="si">}</span><span class="s2">/out/</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span><span class="s2">.correct.%J&quot;</span> <span class="se">\</span>
+       --wrap<span class="o">=</span><span class="s2">&quot;RETRYFAILED=</span><span class="nv">$numjobs</span><span class="s2"> </span><span class="si">${</span><span class="nv">thisscript</span><span class="si">}</span><span class="s2"> </span><span class="nv">$1</span><span class="s2"> </span><span class="nv">$2</span><span class="s2"> </span><span class="nv">$3</span><span class="s2"> </span><span class="nv">$4</span><span class="s2">&quot;</span>
+</pre></div>
+
+<ul>
+<li>This script is actually <strong>submitting itself</strong> as a job so it can 
+  wait for results in the background and then submit remediation jobs </li>
+<li>waiting through <strong>--dependency=singleton</strong> -&gt; run this only after 
+  all jobs with the same job name and a smaller job IDs have finished 
+  (successful or not)</li>
+</ul></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              27/32
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-28">
+          <div class="inner">
+            
             <header><h1>rerun failed jobs</h1></header>
             
             
@@ -2326,16 +2552,20 @@ sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=
 <span class="k">for</span> i in <span class="k">$(</span>seq <span class="m">1</span> <span class="nv">$RETRYFAILED</span><span class="k">)</span><span class="p">;</span> <span class="k">do</span>
     <span class="nv">id</span><span class="o">=</span><span class="k">$((</span><span class="si">${</span><span class="nv">i</span><span class="si">}</span><span class="o">*</span><span class="si">${</span><span class="nv">STEPSIZE</span><span class="si">}</span><span class="o">-</span><span class="si">${</span><span class="nv">STEPSIZE</span><span class="si">}</span><span class="o">+</span><span class="m">1</span><span class="k">))</span>
     <span class="k">if</span> ! <span class="o">[[</span> -f <span class="s2">&quot;</span><span class="si">${</span><span class="nv">MYSCRATCH</span><span class="si">}</span><span class="s2">/run/</span><span class="si">${</span><span class="nv">i</span><span class="si">}</span><span class="s2">-run.dat&quot;</span> <span class="o">]]</span><span class="p">;</span> <span class="k">then</span>
-        <span class="nb">echo</span> <span class="s2">&quot;re-submitting </span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> run </span><span class="si">${</span><span class="nv">id</span><span class="si">}</span><span class="s2">&quot;</span>
-        sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span> <span class="se">\</span>
-               --partition<span class="o">=</span><span class="si">${</span><span class="nv">PARTITION</span><span class="si">}</span> --requeue --time<span class="o">=</span>0-2 <span class="se">\</span>
+        <span class="nb">echo</span> <span class="s2">&quot;  re-submitting </span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> run </span><span class="si">${</span><span class="nv">id</span><span class="si">}</span><span class="s2">&quot;</span>
+        sbatch --job-name<span class="o">=</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span> --partition<span class="o">=</span><span class="si">${</span><span class="nv">PARTITION</span><span class="si">}</span> <span class="se">\</span>
+               --requeue --time<span class="o">=</span>0-2 <span class="se">\</span>
                --mail-type<span class="o">=</span>FAIL --mail-user<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">username</span><span class="si">}${</span><span class="nv">MAILDOM</span><span class="si">}</span><span class="s2">&quot;</span> <span class="se">\</span>
                --output<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">MYSCRATCH</span><span class="si">}</span><span class="s2">/out/</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span><span class="s2">.run2.</span><span class="si">${</span><span class="nv">i</span><span class="si">}</span><span class="s2">.%J&quot;</span> <span class="se">\</span>
                --wrap<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> run </span><span class="si">${</span><span class="nv">id</span><span class="si">}</span><span class="s2"> </span><span class="nv">$3</span><span class="s2"> </span><span class="nv">$4</span><span class="s2"> </span><span class="nv">$5</span><span class="s2"> </span><span class="nv">$6</span><span class="s2"> </span><span class="nv">$7</span><span class="s2"> </span><span class="nv">$8</span><span class="s2"> </span><span class="nv">$9</span><span class="s2">&quot;</span>
     <span class="k">fi</span>
 <span class="k">done</span>
 </pre></div>
-</section>
+
+<ul>
+<li>checks for existance of output files and resubmits failed jobs</li>
+<li>no job arrays required, we assume that fewer than 1% of jobs fail</li>
+</ul></section>
             
           </div>
           <div class="presenter_notes">
@@ -2352,7 +2582,7 @@ sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=
             </aside>
             
             <aside class="page_number">
-              24/25
+              28/32
             </aside>
           </footer>
         </div>
@@ -2360,18 +2590,28 @@ sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=
       
       <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
       <div class="slide-wrapper">
-        <div class="slide has_code slide-25">
+        <div class="slide has_code slide-29">
           <div class="inner">
             
-            <header><h1>the 'merge' phase</h1></header>
+            <header><h1>and finally: the 'merge' phase</h1></header>
             
             
-            <section><div class="highlight"><pre><span class="nb">echo</span> <span class="s2">&quot;submitting </span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> merge </span><span class="si">${</span><span class="nv">listsize</span><span class="si">}</span><span class="s2">...&quot;</span>
+            <section><p>putting it all together </p>
+<div class="highlight"><pre><span class="nb">echo</span> <span class="s2">&quot;submitting </span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> merge </span><span class="si">${</span><span class="nv">listsize</span><span class="si">}</span><span class="s2">...&quot;</span>
 sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span> <span class="se">\</span>
        --partition<span class="o">=</span><span class="si">${</span><span class="nv">PARTITION</span><span class="si">}</span> --requeue --time<span class="o">=</span>0-5 <span class="se">\</span>
        --mail-type<span class="o">=</span>END,FAIL --mail-user<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">username</span><span class="si">}${</span><span class="nv">MAILDOM</span><span class="si">}</span><span class="s2">&quot;</span> <span class="se">\</span>
        --output<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">MYSCRATCH</span><span class="si">}</span><span class="s2">/out/</span><span class="si">${</span><span class="nv">ANALYSIS</span><span class="si">}</span><span class="s2">.merge.%J&quot;</span> <span class="se">\</span>
        --wrap<span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">SCRIPT</span><span class="si">}</span><span class="s2"> merge </span><span class="si">${</span><span class="nv">listsize</span><span class="si">}</span><span class="s2"> </span><span class="nv">$3</span><span class="s2"> </span><span class="nv">$4</span><span class="s2"> </span><span class="nv">$5</span><span class="s2"> </span><span class="nv">$6</span><span class="s2"> </span><span class="nv">$7</span><span class="s2"> </span><span class="nv">$8</span><span class="s2"> </span><span class="nv">$9</span><span class="s2">&quot;</span>
+</pre></div>
+
+<p>checking the result</p>
+<div class="highlight"><pre><span class="nv">$ </span>tail -n <span class="m">5</span> scratch/myAnalysis/out/myAnalysis.merge.32305115 
+<span class="o">[</span>1<span class="o">]</span> <span class="s2">&quot;2016-03-15 22:56:02 i: 31&quot;</span>
+<span class="o">[</span>1<span class="o">]</span> <span class="s2">&quot;2016-03-15 22:56:02 i: 32&quot;</span>
+<span class="o">[</span>1<span class="o">]</span> <span class="s2">&quot;2016-03-15 22:56:02 i: 33&quot;</span>
+<span class="o">[</span>1<span class="o">]</span> <span class="s2">&quot;result: 1000 expected: 1000&quot;</span>
+<span class="o">[</span>1<span class="o">]</span> <span class="s2">&quot;saved result to: ./result/myAnalysis/result.dat&quot;</span>
 </pre></div>
 </section>
             
@@ -2390,7 +2630,132 @@ sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=
             </aside>
             
             <aside class="page_number">
-              25/25
+              29/32
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-30">
+          <div class="inner">
+            
+            <header><h1>Troubleshooting I</h1></header>
+            
+            
+            <section><p><strong>Error: DependencyNeverSatisfied</strong></p>
+<p>submit a job: ./sce ./example.py X2 one two three</p>
+<pre><code>petersen@rhino2:/home…$ squeue -u petersen
+JOBID    PARTITION  USER   ST  TIME  NODES NODELIST(REASON)
+32249193  restar  petersen PD  0:00      1 (DependencyNeverSatisfied)
+32249194  restar  petersen PD  0:00      1 (Dependency)
+</code></pre>
+<p>mistake: added args that example.py does not support:</p>
+<pre><code>petersen@rhino2:/home…$ cat scratch/X2/out/X2.prepare.32249433 
+usage: example.py [-h] phase [id]
+example.py: error: unrecognized arguments: one two three
+</code></pre>
+<p>cancel jobs where dependencies will never be satisfied:</p>
+<pre><code>scancel --name X2
+</code></pre></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              30/32
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide slide-31">
+          <div class="inner">
+            
+            <header><h1>Troubleshooting II</h1></header>
+            
+            
+            <section><p><strong>verifying output</strong> for  ./sce ./example.py X4</p>
+<pre><code>petersen@rhino2:/home…$ cat scratch/X4/out/X4.run.0_1_32249707.32249709 
+arr id:0 TASKID:1 STEPSIZE:2
+i: 1
+i: 2
+petersen@rhino2:/home…$ cat scratch/X4/out/X4.run.0_3_32249707.32249710 
+arr id:0 TASKID:3 STEPSIZE:2
+i: 3
+i: 4
+petersen@rhino2:/home…$ cat scratch/X4/out/X4.run.0_5_32249707.32249711 
+arr id:0 TASKID:5 STEPSIZE:2
+i: 5
+i: 6
+</code></pre></section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              31/32
+            </aside>
+          </footer>
+        </div>
+      </div>
+      
+      <!-- slide source: \Python\py\slurm-examples\centipede\README.md -->
+      <div class="slide-wrapper">
+        <div class="slide has_code slide-32">
+          <div class="inner">
+            
+            <header><h1>How to create these slides</h1></header>
+            
+            
+            <section><p>install darkslide and then run it against a markdown file in watchdog mode</p>
+<div class="highlight"><pre><span class="nv">$ </span>pip3 install darkslide watchdog
+
+<span class="nv">$ </span>darkslide -w -l no -i -d ./README.html ./README.md
+</pre></div>
+</section>
+            
+          </div>
+          <div class="presenter_notes">
+            <header><h1>Presenter Notes</h1></header>
+            <section>
+            
+            </section>
+          </div>
+          <footer>
+            
+            
+            <aside class="source">
+              Source: <a href="\Python\py\slurm-examples\centipede\README.md">\Python\py\slurm-examples\centipede\README.md</a>
+            </aside>
+            
+            <aside class="page_number">
+              32/32
             </aside>
           </footer>
         </div>
@@ -2435,7 +2800,7 @@ sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=
       
       
       <tr id="toc-row-6">
-        <th><a href="#slide:6">how long should a loop take</a></th>
+        <th><a href="#slide:6">how long should a loop take ?</a></th>
         <td><a href="#slide:6">6</a></td>
       </tr>
       
@@ -2477,80 +2842,122 @@ sbatch --dependency<span class="o">=</span>singleton --job-name<span class="o">=
       
       
       <tr id="toc-row-13">
-        <th><a href="#slide:13">scentipede setup</a></th>
+        <th><a href="#slide:13">example.R running each phase:</a></th>
         <td><a href="#slide:13">13</a></td>
       </tr>
       
       
       <tr id="toc-row-14">
-        <th><a href="#slide:14">Job Arrays</a></th>
+        <th><a href="#slide:14">centipede (sce) setup</a></th>
         <td><a href="#slide:14">14</a></td>
       </tr>
       
       
       <tr id="toc-row-15">
-        <th><a href="#slide:15">Setup your storage folders</a></th>
+        <th><a href="#slide:15">Job Arrays</a></th>
         <td><a href="#slide:15">15</a></td>
       </tr>
       
       
       <tr id="toc-row-16">
-        <th><a href="#slide:16">Environment variables inherited</a></th>
+        <th><a href="#slide:16">Setup your storage folders</a></th>
         <td><a href="#slide:16">16</a></td>
       </tr>
       
       
       <tr id="toc-row-17">
-        <th><a href="#slide:17">and in python ...</a></th>
+        <th><a href="#slide:17">Environment variables inherited</a></th>
         <td><a href="#slide:17">17</a></td>
       </tr>
       
       
       <tr id="toc-row-18">
-        <th><a href="#slide:18">Environment vs command line</a></th>
+        <th><a href="#slide:18">and in python ...</a></th>
         <td><a href="#slide:18">18</a></td>
       </tr>
       
       
       <tr id="toc-row-19">
-        <th><a href="#slide:19">scentipde example</a></th>
+        <th><a href="#slide:19">Environment vs command line</a></th>
         <td><a href="#slide:19">19</a></td>
       </tr>
       
       
       <tr id="toc-row-20">
-        <th><a href="#slide:20">The 'prepare' phase</a></th>
+        <th><a href="#slide:20">sce example</a></th>
         <td><a href="#slide:20">20</a></td>
       </tr>
       
       
       <tr id="toc-row-21">
-        <th><a href="#slide:21">The 'run' phase</a></th>
+        <th><a href="#slide:21">'listsize' getting the size of object</a></th>
         <td><a href="#slide:21">21</a></td>
       </tr>
       
       
       <tr id="toc-row-22">
-        <th><a href="#slide:22">Save to tmp file and rename !</a></th>
+        <th><a href="#slide:22">The 'prepare' phase</a></th>
         <td><a href="#slide:22">22</a></td>
       </tr>
       
       
       <tr id="toc-row-23">
-        <th><a href="#slide:23">a job submitting more jobs</a></th>
+        <th><a href="#slide:23">The 'run' phase</a></th>
         <td><a href="#slide:23">23</a></td>
       </tr>
       
       
       <tr id="toc-row-24">
-        <th><a href="#slide:24">rerun failed jobs</a></th>
+        <th><a href="#slide:24">R code during 'run' phase</a></th>
         <td><a href="#slide:24">24</a></td>
       </tr>
       
       
       <tr id="toc-row-25">
-        <th><a href="#slide:25">the 'merge' phase</a></th>
+        <th><a href="#slide:25">a test run</a></th>
         <td><a href="#slide:25">25</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-26">
+        <th><a href="#slide:26">output (stdout) during run phase</a></th>
+        <td><a href="#slide:26">26</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-27">
+        <th><a href="#slide:27">a job for re-submitting failed jobs</a></th>
+        <td><a href="#slide:27">27</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-28">
+        <th><a href="#slide:28">rerun failed jobs</a></th>
+        <td><a href="#slide:28">28</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-29">
+        <th><a href="#slide:29">and finally: the 'merge' phase</a></th>
+        <td><a href="#slide:29">29</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-30">
+        <th><a href="#slide:30">Troubleshooting I</a></th>
+        <td><a href="#slide:30">30</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-31">
+        <th><a href="#slide:31">Troubleshooting II</a></th>
+        <td><a href="#slide:31">31</a></td>
+      </tr>
+      
+      
+      <tr id="toc-row-32">
+        <th><a href="#slide:32">How to create these slides</a></th>
+        <td><a href="#slide:32">32</a></td>
       </tr>
       
       
