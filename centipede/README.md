@@ -29,6 +29,18 @@ Recommendations:
   (check pointing not in scope for this tutorial)
 - make sure jobs run short so they are **not often interrupted**
 - jobs should be short but **not too short**, 15-30  min ideal
+- **Avoid MPI:** cannot allocate all ressouces at the same time and 
+  one worker failure would cancel entire job 
+
+---
+
+# Restart queue Job distribution
+
+- MPI: allocate all cores for duration of job
+
+![MPI jobs](.images/mpi-vs-restart.png)
+
+- Restart: only run a number of jobs at any given time
 
 ---
 
@@ -216,6 +228,7 @@ You can change these constants:
     SCRIPT='./example.R' # your code as (R or Python) script (1st arg)
     STEPSIZE=2           # number of consecutive loops in SCRIPT to run in
                          # the same job / node (increase for short jobs)
+						 # MAXARRAYSIZE MUST be divisible by STEPSIZE
                          
 to start the python example without editing the script, run it like this:
 
@@ -335,6 +348,30 @@ of iterations
   
 ---
 
+# a tiny BASH shell primer
+
+use ${} curly brackets to wrap variables
+
+    !bash
+	/some/${SCRIPT}/path #  
+	
+use $() parenthesis to get output of an external command
+
+    !bash
+	output=$(ls -l | grep xxx) #  
+
+use double square brackets for conditionals
+    
+	!bash
+	if [[ -z $1 ]]; then  # 
+
+use $(()) double parenthesis for math expressions
+	
+	!bash
+	x=$((10+10+1))  # 	
+
+---
+	
 # The 'prepare' phase
 
     !bash
