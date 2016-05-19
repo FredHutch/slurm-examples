@@ -1,0 +1,14 @@
+#!/bin/bash
+echo "Creating file ${2} from ${1}"
+mkdir -p tmp && echo "Created tmpdir"
+echo "Working...."
+for iter in {1..3}
+do
+    dd if=/dev/urandom of=tmp/${2} bs=1024 count=20
+    echo "wrote 20 blocks"
+    sleep 2
+done
+echo "Work complete, finalizing"
+cp tmp/${2} ${2} && rm tmp/${2}
+echo "Finalize done, job done"
+

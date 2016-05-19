@@ -1,0 +1,4 @@
+make-pipeline/*.data
+make-pipeline/*.out
+make-pipeline/tmp/
+.*.swp
