@@ -1,16 +1,10 @@
 #! /usr/bin/env Rscript
 
-# get environment variables
-MYSCRATCH <- Sys.getenv('MYSCRATCH')
-RESULTDIR <- Sys.getenv('RESULTDIR')
-STEPSIZE <- as.numeric(Sys.getenv('STEPSIZE'))
-TASKID <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
-
-# set defaults if nothing comes from environment variables
-MYSCRATCH[is.na(MYSCRATCH)] <- '.'
-RESULTDIR[is.na(RESULTDIR)] <- '.'
-STEPSIZE[is.na(STEPSIZE)] <- 1
-TASKID[is.na(TASKID)] <- 0
+# get environment variables or set a default value
+MYSCRATCH <- Sys.getenv('MYSCRATCH', '.')
+RESULTDIR <- Sys.getenv('RESULTDIR', ',')
+STEPSIZE <- as.numeric(Sys.getenv('STEPSIZE', 1))
+TASKID <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID', 0))
 
 # get command lines arguments
 args <- commandArgs(trailingOnly = TRUE)

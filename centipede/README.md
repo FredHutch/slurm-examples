@@ -271,30 +271,23 @@ in your R code
     !R
     #! /usr/bin/env Rscript
 
-    # get environment variables
-    MYSCRATCH <- Sys.getenv('MYSCRATCH')
-    RESULTDIR <- Sys.getenv('RESULTDIR')
-    STEPSIZE <- as.numeric(Sys.getenv('STEPSIZE'))
-    TASKID <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
-
-    # set defaults if nothing comes from environment variables
-    MYSCRATCH[is.na(MYSCRATCH)] <- '.'
-    RESULTDIR[is.na(RESULTDIR)] <- '.'
-    STEPSIZE[is.na(STEPSIZE)] <- 1
-    TASKID[is.na(TASKID)] <- 0
+    # get environment variables or set default
+    MYSCRATCH <- Sys.getenv('MYSCRATCH', '.')
+    RESULTDIR <- Sys.getenv('RESULTDIR', '.')
+    STEPSIZE <- as.numeric(Sys.getenv('STEPSIZE', 1))
+    TASKID <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID', 0))
 
 ---
 
 # and in python ...
 
     !python
-	# get environment variables
+	# get environment variables or set default
 	MYSCRATCH = os.getenv('MYSCRATCH', '.')
 	RESULTDIR = os.getenv('RESULTDIR', '.')
 	STEPSIZE = int(os.getenv('STEPSIZE', 1))
 	TASKID = int(os.getenv('SLURM_ARRAY_TASK_ID', 0))
 
-- getting defaults is slightly simpler here 
 - TASKID AND STEPSIZE required for job arrays 
   and we'll get to that in a minute
 	
