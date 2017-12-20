@@ -1,4 +1,0 @@
-#!/bin/bash
-
-R -q --vanilla --args ${1} ${2} < ./hello.R \
-  > results-${1}-${2}.out
