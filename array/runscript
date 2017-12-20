@@ -1,0 +1,3 @@
+#!/bin/bash
+
+R -q --vanilla --args ${1} ${2} < /home/mrg/Work/slurm-examples/array/hello.R
