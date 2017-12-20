@@ -1,0 +1,6 @@
+#!/bin/bash
+iteration=${1}
+round=${2}
+R -q --vanilla --args ${iteration} ${round} < ./hello.R \
+  > results-${iteration}-${round}.out
+sleep 120

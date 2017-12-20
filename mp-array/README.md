@@ -10,4 +10,8 @@ The goal of these two examples is to call an R script which prints out the itera
 creates the multi-prog configuration file that runs `runscript` with a pair of
 arguments, the iteration and round
 
+`mp-sbatch` modifies the original multi-prog job submission to use sbatch to submit the job steps   `super.sh` runs a loop that
+creates the multi-prog configuration file that runs `runscript` with a pair of
+arguments, the iteration and round
+
 `array` contains the array-based scripts required.  The R script is called with a single argument- the iteration.  The round is gleaned from the `SLURM_ARRAY_INDEX` environment variable.

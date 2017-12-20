@@ -1,2 +1,3 @@
 mp?.conf
 results-*.out
+slurm*.out
