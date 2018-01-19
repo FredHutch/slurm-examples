@@ -1,0 +1,148 @@
+#! /bin/bash
+
+# create a Dask cluster on SLURM interactively 
+# requires fhdask script 
+
+scriptn=${0##*/}
+cmdline="$@"
+defworkers=16
+defdays=1
+touser=$(/app/bin/fhrealuser)
+debugto="petersen"
+domain=$(hostname -d)
+pythonmodule="Python/3.6.4-foss-2016b-fh1"
+cores=2
+clusters=''
+nodes=''
+memory=''
+
+echoerr(){
+  # echo to stderr instead of stdout
+  echo -e "$@" 1>&2
+}
+
+if ! hash dask-scheduler 2>/dev/null; then
+  source /app/bin/fhmodulecheck
+  echoerr "No dask environment found, wrong python "
+  echoerr "Please execute first: ml $pythonmodule"
+  exit 1
+fi
+
+while getopts M:p:c:n:N: myopts; do
+  case "$myopts" in
+    M)    clusters="-M $OPTARG";; 
+    p)    partition="-p $OPTARG";;
+    c)    cores="$OPTARG";;
+    n)    workers="$OPTARG";;    
+    N)    nodes="-N $OPTARG";;
+    #?)    echo "other option"
+    #      exit 2;;
+  esac
+done
+#shift $((OPTIND - 1))
+
+
+#if [[ "$1" == "-M" && -n $2 ]]; then
+   #slurmcluster="-M $2"
+#fi
+
+if [[ $partition == "-p largenode" ]]; then
+  memory="--mem 33GB"
+fi 
+
+if [[ -z $workers ]]; then
+  read -t 30 -p "Please enter the number of dask workers (default: ${defworkers}): " workers
+fi
+if [[ -z $workers ]]; then workers=$defworkers; fi
+read -t 30 -p "Please enter the number of days to grab these workers (default: ${defdays}): " days
+if [[ -z $days ]]; then days=$defdays; fi
+
+totcpu=$((workers*cores))
+#numnodes=$(($workers/2))
+
+jobid=$(sbatch --job-name=$scriptn ${nodes} --tasks=${workers} --cpus-per-task=${cores} --time=${days}:0 ${cmdline} ${memory} fhdask-test)
+# remove the clustername if returned
+jobid=${jobid%;*}
+
+echoerr "Job ${jobid}: 2 cores per worker, $totcpu total cores."
+
+while true; do
+  (( i+=1 ))
+  state=$(squeue -h -j ${jobid} --format="%t %r" ${clusters} ${partition} | tail -1)
+  #echoerr "*** state1: ${state}"
+  states=( $state )
+  if [[ "${states[0]}" == "R" ]]; then
+    echoerr "Job ${jobid} started, waiting for Dask..."
+    break
+  fi
+  echo "Job ${jobid} pending, reason: ${states[1]}"
+  if [[ -z $state ]]; then
+    echo "job ended and likely failed, please check ${jobid}.dask.err :"
+    scancel ${jobid}
+    tail ${jobid}.dask.err
+    exit 1
+  fi
+  if [[ "${states[1]}" == "QOSMaxNodePerJobLimit" ]]; then
+    echo "This queue has limited nodes per job, please choose fewer workers"
+    scancel ${jobid}
+    exit 1
+  fi  
+  if [[ "${states[1]}" == "MaxCpuPerAccount" || "${states[1]}" == "MaxCpuPerUser" ]]; then
+    echo "Limit reached, please choose fewer workers"
+    scancel ${jobid}
+    exit 1
+  fi
+  if [[ "${states[1]}" == "QOSMinCpuNotSatisfied" || "${states[1]}" == "QOSMinMemory" ]]; then
+    echo "This queue requires requesting a minimum number of CPU and memory."
+    scancel ${jobid}
+    exit 1
+  fi 
+  if [[ "${states[1]}" == "BadConstraints" ]]; then
+    echo "please choose different --constraint options"
+    scancel ${jobid}
+    exit 1
+  fi
+  sleep $i
+done
+
+sched=''
+until [[ -n ${sched} ]]; do
+  (( j+=1 ))
+  sched=$(grep "^SCHEDULER " ${jobid}.dask.out 2>/dev/null)
+  sched=${sched//"SCHEDULER "/""}
+
+  bokeh=$(grep "^BOKEH " ${jobid}.dask.out 2>/dev/null)
+  bokeh=${bokeh//"BOKEH "/""}
+  
+  if [[ $j -ge 5 ]]; then
+    echoerr "file ${jobid}.dask.out does not exist yet, please wait ..."
+  fi
+  sleep $j
+done
+
+echoerr "\n  WARNING: Dask has been started in your user context, which means that:"
+echoerr "  Anyone on campus connecting to port $sched could get access to your data"
+echoerr "  in mounted file systems such as /home or /fh\n"
+
+echoerr "  You can now connect to Dask, e.g. e = distributed.Executor(\"${sched}\")."
+echoerr "  To stop your Dask cluster execute: scancel ${jobid} or scancel -n grabdask"
+echoerr "  For status monitoring with Bokeh please go to http://${bokeh}/"
+
+mpack -s "${scriptn}: run by ${touser}" ${jobid}.dask.err "${debugto}@${domain}"
+
+if hash chromium-browser 2>/dev/null; then
+  if [[ -n $DISPLAY ]]; then 
+    httpcode="0"
+    echoerr "  or wait until browser is started....\n"
+    until [[ "$httpcode" == "200" ]]; do 
+      httpcode=$(curl --write-out %{http_code} --silent --output /dev/null http://${bokeh}/)
+      sleep 1
+    done
+    chromium-browser --temp-profile http://${bokeh}/status  > /dev/null 2>&1 &
+  else
+    echoerr "\n"
+  fi
+else
+  echoerr "\n"
+fi
+
