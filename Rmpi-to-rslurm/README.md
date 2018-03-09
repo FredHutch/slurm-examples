@@ -27,7 +27,6 @@ from `Rmpi` to `rslurm`. The converted script is called
 
 Both scripts are in `/fh/fast/_ADM/SciComp/public/lih-rslurm/`.
 
-(TODO: move everything to github? Public or private?)
 
 ## Changes made
 
