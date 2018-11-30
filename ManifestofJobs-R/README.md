@@ -3,7 +3,8 @@ This example assumes you have a csv full of arguments to a task you want to perf
 
 The name of the csv containing your sets of arguments is "taskArgumentManifest.csv".  In each separate job you want to kick off you want Rtask.R to run with input variables from one row of the manifest.
 
-This would run Rtask.R on the first row of the manifest. 
+This would run Rtask.R on the first row of the manifest.
 ```
+ml R/3.5.1-foss-2016b-fh1
 Rscript Rtask.R taskArgumentManifest.csv 1
 ```
