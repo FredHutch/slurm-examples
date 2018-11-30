@@ -1,9 +1,9 @@
 #!/usr/bin/env Rscript
 args = commandArgs(trailingOnly=TRUE)
 
-# Test if there are two arguments: if not, return an error
-if (length(args) != 2) {
-  stop("Two arguments must be supplied, manifest file name and iteration number.n", call.=FALSE)
+# Test if there is not one argument: if not, return an error
+if (length(args) != 1) {
+  stop("One argument must be supplied, the manifest file name.n", call.=FALSE)
 }
 
 # Read in the specific manifest you indicated, then select the 
@@ -11,7 +11,7 @@ if (length(args) != 2) {
 # Doing it this way rather than using "skip" and "nrows in the 
 # read.csv preserves any column names you might have in the csv. 
 manifest <- read.csv(args[1] , stringsAsFactors = F) 
-thisRun <- manifest[args[2],]
+thisRun <- manifest[Sys.getenv('SLURM_ARRAY_TASK_ID'),]
 
 # Assign this run's arguments
 thisVariable <- thisRun$thisVariable
