@@ -18,9 +18,11 @@ thisVariable <- thisRun$thisVariable
 thatVariable <- thisRun$thatVariable
 thisOtherOne <- thisRun$thisOtherOne
 thisToo <- thisRun$thisToo
-########## Guts go here, decide what you want to return as stdout
+########## Guts go here
+
+########## Decide what you want to return as stdout here so this will give you an output from R about the process
 theArguments <- paste(thisVariable, thatVariable, thisOtherOne, thisOtherOne, sep = ", ")
-output <- c("Magic happened for this set of arguments:  ", theArguments)
+output <- paste0("Magic happened for this set of arguments: ", theArguments, collapse = " ")
 ##########
 write(output, stdout())
 
