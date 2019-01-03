@@ -17,7 +17,7 @@ models/tutorials/image/mnist/convolutional.py:
 
 run: out.txt
 out.txt: models/tutorials/image/mnist/convolutional.py
-	sbatch -p gpu -o out.txt \
+	sbatch -M koshu -p gpu -o out.txt \
 		--gres=gpu:V100-SXM2-16GB:1 ./scripts/mnist-convolutional.sh
 
 clean:
