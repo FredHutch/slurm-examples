@@ -53,4 +53,4 @@ When you are ready to go. You simply run on the command line within gizmo
 
 >sbatch example.sh
 
-This is just one example of how to run parallel R jobs within slurm. More examples on how to run parallel jobs can be found in this repository. 
+This is just one example of how to run parallel R jobs within slurm. More examples on how to run parallel jobs can be found in this repository ([slurm example](../../)). 
