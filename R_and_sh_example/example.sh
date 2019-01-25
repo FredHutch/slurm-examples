@@ -10,4 +10,4 @@
 
 ml R/3.4.3-foss-2016b-fh2
 
-R CMD BATCH --no-save  R_cluster_example.R Rout/example_v_indep${SLURM_ARRAY_TASK_ID}.Rout
+R CMD BATCH --no-save  R_cluster_example.R Rout/example_slurm${SLURM_ARRAY_TASK_ID}.Rout
