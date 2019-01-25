@@ -22,7 +22,7 @@ TabTabTabby<-expand.grid(c(0,0.5,1), #effect estimates
 #######
 BetaUse<-TabTabTabby[touse,1]
 N<-TabTabTabby[touse,2]
-
+set.seed(touse+1975)
 #######
 #Number of replications
 #######
