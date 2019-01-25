@@ -17,7 +17,7 @@ ml R/3.4.3-foss-2016b-fh2
 
 R CMD BATCH --no-save  R_cluster_example.R Rout/example_v_indep${SLURM_ARRAY_TASK_ID}.Rout
 ```
-These options are explained in more detail elsewhere ([Using Slurm on Hutch Systems](~/FredHutch/Wiki/cluster_rhinoGizmo.md)). Make sure to change the  `--mail-user` option as Fred does not need any more emails (in addition gizmo will only allow emails to the email which the account is registered to). This will send an email when the job is finished. In addition, The `Rout` option specified a directory which to output information on the job you've run and other errors. For our simulation the key line is
+These options are explained in more detail elsewhere ([Using Slurm on Hutch Systems](https://sciwiki.fredhutch.org/computing/cluster_usingSlurm/)). Make sure to change the  `--mail-user` option as Fred does not need any more emails (in addition gizmo will only allow emails to the email which the account is registered to). This will send an email when the job is finished. In addition, the `Rout` option specified a directory which to output information on the job you've run and other errors. For our simulation the key line is
 ```
 #SBATCH --array=[1-15]
 ```
@@ -53,4 +53,4 @@ When you are ready to go. You simply run on the command line within gizmo
 
 >sbatch example.sh
 
-This is just one example of how to run parallel R jobs within slurm. More examples on how to run parallel jobs can be found in this repository ([slurm example](../../)). 
+This is just one example of how to run parallel R jobs within slurm. More examples on how to run parallel jobs can be found in this repository ([slurm example](https://github.com/FredHutch/slurm-examples)). 
