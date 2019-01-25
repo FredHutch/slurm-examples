@@ -26,7 +26,7 @@ This tells the system that we are running 15 jobs. This can be changed to other 
 
 ## `R_cluster_example.R`
 
-This file has the actual R code which runs the simulations that we want to perform. While in this example it is simply simulations this can easily be changed to refer to files or any other parallel jobs want to perform. The key line in it is
+This file has the actual R code which runs the simulations that we want to perform. While in this example it is simply simulations, it can easily be changed to refer to files or any other parallel jobs want to perform. The key line in it is
 ```
 touse<-as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
 ```
@@ -44,7 +44,6 @@ TabTabTabby<-expand.grid(c(0,0.5,1), #effect estimates
 #######
 BetaUse<-TabTabTabby[touse,1]
 N<-TabTabTabby[touse,2]
-set.seed(touse+1975)
 ```
 And then more things are done further on in the script `R_cluster_example.R`. The second most important value in the above is the R object `TabTabTabby`. In this simulation it has information on the simulation parameters but it could be a vector of file locations that are then read in by R later on in the document. 
 
