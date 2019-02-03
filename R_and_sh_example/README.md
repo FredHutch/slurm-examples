@@ -22,7 +22,12 @@ These options are explained in more detail elsewhere ([Using Slurm on Hutch Syst
 #SBATCH --array=[1-15]
 ```
 
-This tells the system that we are running 15 jobs. This can be changed to other options as well.
+This tells the system that we are running 15 jobs. This can be changed to other options as well. 
+```
+R CMD BATCH --no-save  R_cluster_example.R
+```
+This tells the system to run `R_cluster_example.R` non-interactively. Given the `SBATCH --array=[1-15]` option above it will run it non-interactively 15 times, with each job having a different `TASK_ID.` This part is key as we will use this in our `R_cluster_example.R` file. 
+
 
 ## `R_cluster_example.R`
 
@@ -31,7 +36,7 @@ This file has the actual R code which runs the simulations that we want to perfo
 touse<-as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
 ```
 
-This picks which of the 15 jobs are being run. Then the additional lines to ensure all 15 runs are different:
+This picks which of the 15 jobs are being run. For example it will know that is currently performing job 1, or job 13. Then to make it so that each R run is different we can create a conditional table of all the scenariors that we want to run:
 ```r
 #######
 #Create table of simulation scenarios
@@ -47,10 +52,12 @@ N<-TabTabTabby[touse,2]
 ```
 And then more things are done further on in the script `R_cluster_example.R`. The second most important value in the above is the R object `TabTabTabby`. In this simulation it has information on the simulation parameters but it could be a vector of file locations that are then read in by R later on in the document. 
 
+Now, while this code is set up for a simulation example, we could easily be referencing a manifest file where each line in that file is different parameter settings we are interesting in running. For an example of this, see [FFF]()
+
 ## Finally running the code
 
 When you are ready to go. You simply run on the command line within gizmo
-
->sbatch example.sh
-
+```
+sbatch example.sh
+```
 This is just one example of how to run parallel R jobs within slurm. More examples on how to run parallel jobs can be found in this repository ([slurm example](https://github.com/FredHutch/slurm-examples)). 
