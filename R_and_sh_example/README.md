@@ -50,9 +50,9 @@ TabTabTabby<-expand.grid(c(0,0.5,1), #effect estimates
 BetaUse<-TabTabTabby[touse,1]
 N<-TabTabTabby[touse,2]
 ```
-And then more things are done further on in the script `R_cluster_example.R`. The second most important value in the above is the R object `TabTabTabby`. In this simulation it has information on the simulation parameters but it could be a vector of file locations that are then read in by R later on in the document. 
+And then more things are done further on in the script `R_cluster_example.R`. The second most important bit of code is the R object `TabTabTabby`. In this scenario it has information on the simulation parameters but it could be a vector of file locations that are then read in by R. Also, notice `TabTabTabby` is a 15 by 2 data.frame with each row representing a different simulation scenario we want to evaluate. Therefore each `'SLURM_ARRAY_TASK_ID'` refers to a different simulation we want to run.
 
-Now, while this code is set up for a simulation example, we could easily be referencing a manifest file where each line in that file is different parameter settings we are interesting in running. For an example of this, see [FFF]()
+Now, while this code is set up for a simulation example, we could easily be referencing a manifest file where each line in that file is different parameter settings we are interesting in running. For an example of this, see [Manifest of Jobs and R](/ManifestofJobs-R/).
 
 ## Finally running the code
 
