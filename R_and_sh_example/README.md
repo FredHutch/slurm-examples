@@ -4,7 +4,7 @@ In this example, we provide another way to run simple parallel computing using a
 This is the batch script that contains the `sbatch` parameters.
 ```
 #!/bin/bash
-#SBATCH --mail-user=<span>fred</span>@fredhutch.org 
+#SBATCH --mail-user=fred@fredhutch.org 
 #SBATCH --mail-type=END
 #SBATCH --array=[1-15]
 #SBATCH --nodes=1
