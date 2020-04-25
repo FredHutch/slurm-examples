@@ -20,7 +20,7 @@ sudo chmod 4755 checkpointer-suid
 
 You can activate checkpointing for your job by using the `checkpointer` command in the shell script that starts your job. After checkpointer is launched, it waits in the background until there are only 10 min scheduled time left for your compute job. Then it will kill your compute process and flush it to disk and at the same time it will submit another job with the same parameters as the first one (e.g. number of cpus, partition, wall clock time). When that next job starts it will load all information from disk and continue the computation on a different compute node.
 
-Add the `checkpointer` command to your script and ensure it is executed *before* the actual compute script or bianry is launched.
+Add the `checkpointer` command to your script and ensure it is executed *before* the actual compute script or binary is launched.
 
 ```
 cat runscript.sh
@@ -36,3 +36,15 @@ After this you launch the script with sbatch. If you request 30 min (e.g. `sbatc
 sbatch -t 0-0:30 runscript.sh
 ```
 
+## Current limitations
+
+* checkpointer supports only simple jobs that run on a single node. 
+* is is not tested with array jobs 
+* The submission script should not contain complex structures or multiple steps. 
+* ## Current limitations
+
+* checkpointer supports only simple jobs that run on a single node. 
+* checkpointer is untested with array jobs 
+* The submission script should not contain complex structures or multiple steps.
+* The underlying CRIU tool does not support open file handles for writes/appends on shared storage. (See https://github.com/checkpoint-restore/criu/issues/1043) Workaround: checkpointer supports writing to local scratch space and copies the data around for you. 
+* 
