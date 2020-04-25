@@ -39,11 +39,6 @@ sbatch -t 0-0:30 runscript.sh
 ## Current limitations
 
 * checkpointer supports only simple jobs that run on a single node. 
-* is is not tested with array jobs 
-* The submission script should not contain complex structures or multiple steps. 
-* ## Current limitations
-
-* checkpointer supports only simple jobs that run on a single node. 
 * checkpointer is untested with array jobs 
 * The submission script should not contain complex structures or multiple steps.
 * The underlying CRIU tool does not support open file handles for writes/appends on shared storage. (See https://github.com/checkpoint-restore/criu/issues/1043) Workaround: checkpointer supports writing to local scratch space and copies the data around for you. 
