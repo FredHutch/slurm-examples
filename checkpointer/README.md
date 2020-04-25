@@ -8,7 +8,7 @@ Checkpointer is focusing on increasing throughput but also inproves fault tolera
 
 ## Installing checkpointer
 
-The shell scripts assume that /app is mounted consistently on all cluster nodes and you have added /app/bin to your PATH and that the shell scripts reside in /app/lib/checkpointer. A symlink /app/bin/checkpointer is pointing to /app/lib/checkpointer/checkpointer. If you have a different folder structure you can change the source command in /app/lib/checkpointer/checkpointer. After install you need to compile a C wrapper that provides addional security for software that runs suid. See this issue for a discussion of checkpointer-suid:  https://github.com/checkpoint-restore/criu/issues/1027 
+The shell scripts assume that /app is mounted consistently on all cluster nodes and you have added /app/bin to your PATH and that the shell scripts reside in /app/lib/checkpointer. A symlink /app/bin/checkpointer is pointing to /app/lib/checkpointer/checkpointer. If you have a different folder structure you can change the CHECKPOINTER_LIBDIR environment variable in /app/lib/checkpointer/checkpointer. After install you need to compile a C wrapper that provides addional security for software that runs suid. See this issue for a discussion of checkpointer-suid:  https://github.com/checkpoint-restore/criu/issues/1027 
 
 ```
 cd /app/lib/checkpointer
