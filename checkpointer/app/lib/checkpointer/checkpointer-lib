@@ -1,0 +1,52 @@
+#! /bin/bash
+
+### global variables 
+TOOLS="criu curl jq"
+TOOLBOXURL="https://toolbox.fhcrc.org/json/user2pi.json"
+CHECKPOINTER_ROOT="/fh/scratch/delete10"
+
+### user definded functions ###
+echoErr(){
+  # echo to stderr instead of stdout
+  echo -e "$@" 1>&2
+}
+
+pathExist(){
+  if ! [[ -e $1 ]]; then
+    echoErr "Error: path '$1' does not exist\n"
+    exit
+  fi
+}
+
+checkToolDependencies() {
+  local doexit=0
+  for t in $TOOLS; do 
+    if ! hash $t 2>/dev/null; then
+      echoErr " \"$t\" is not installed, please install and try again !"
+      doexit=1
+    fi
+  done
+  if [[ $doexit -eq 1 ]]; then
+    exit
+  fi
+}
+
+checkEnvironment() {
+  if [[ -z $CHECKPOINTER_DIR ]]; then
+    if [[ ${PI} == "" || ${PI} =~ "div-" ]]; then
+      echoErr ""
+      echoErr "according to our database you are not reporting to a PI"
+      echoErr "Please set envionment variable CHECKPOINTER_DIR "
+      echoErr "which is a folder somewhere under ${CHECKPOINTER_ROOT},"
+      echoErr "for example run something like this to set CHECKPOINTER_DIR permanently:"
+      echoErr "echo \"export CHECKPOINTER_DIR=${CHECKPOINTER_ROOT}/your/folder\" >> ~/.bashrc"
+    fi
+    groups | grep -wq "${PI}_grp"
+    if [[ $? -ne 0  ]]; then
+      echoErr ""
+      echoErr "you are not yet member of security group ${PI}_grp !"
+      echoErr "Please send a ticket, ask to be added to this group "
+      echoErr "and CC your PI or their delegate !"
+    fi
+  fi
+}

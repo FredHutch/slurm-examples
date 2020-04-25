@@ -1,0 +1,126 @@
+#! /bin/bash
+
+source ${CHECKPOINTER_LIBDIR}/checkpointer-lib
+
+wait_dump_and_submit() {
+  # wait for end of wall time, dump pid CHECKPOINTER_PROCESS and 
+  # submit a new batch job to bring the process back on a different node
+  local STOPME=0 
+  WALLTIME=$(squeue --noheader -o %l -j $SLURM_JOB_ID)
+  cd "${SLURM_SUBMIT_DIR}"
+  mkdir -p ${CHECKPOINTER_DIR}/${SLURM_JOB_ID}
+  while [[ ${STOPME} -eq 0 ]]; do
+    TIMELEFT=$(squeue --noheader -o %L -j $SLURM_JOB_ID)
+    if [[ "${TIMELEFT}" == "INVALID" ]]; then
+      STOPME=1
+    fi
+    echoErr "Time left: ${TIMELEFT}"
+    if [[ ${#TIMELEFT} -eq 4 && "${TIMELEFT:1:1}" == ":" ]]; then
+      # less than 9:59 min left on job checkpoint now.
+      echoErr "Submitting new Slurm job to restore checkpoint ..."
+      sbatch -J "${SLURM_JOB_NAME}+CRrestore+${FIRSTJOBID}+${SLURM_JOB_ID}+${CHECKPOINTER_PROCESS}" \
+              -c ${SLURM_CPUS_ON_NODE} -A ${SLURM_JOB_ACCOUNT} \
+              -p ${SLURM_JOB_PARTITION} -t ${WALLTIME} -x $(hostname) \
+              checkpointer
+      cd ${CHECKPOINTER_DIR}/${SLURM_JOB_ID}
+      echoErr "Dumping checkpoint for pid ${CHECKPOINTER_PROCESS} to "
+      echoErr "${CHECKPOINTER_DIR}/${SLURM_JOB_ID} ..."
+      ${CHECKPOINTER_LIBDIR}/checkpointer-suid dump ${CHECKPOINTER_PROCESS}
+      CREXIT=$?
+      echoErr "Dump done, Exit code: ${CREXIT}"
+      cd "${SLURM_SUBMIT_DIR}"
+      exit ${CREXIT}
+    fi
+    sleep 5
+  done
+}
+
+resubmit() {
+  cd "${SLURM_SUBMIT_DIR}"
+  if [[ ${CHECKPOINTER_ERROR_COUNT} -le ${CHECKPOINTER_MAX_ERRORS} ]]; then
+    sbatch -J "${SLURM_JOB_NAME}+CRrestore+${FIRSTJOBID}+${SLURM_JOB_ID}+${CHECKPOINTER_PROCESS}" \
+           -c ${SLURM_CPUS_ON_NODE} -A ${SLURM_JOB_ACCOUNT} \
+           -p ${SLURM_JOB_PARTITION} -t ${WALLTIME} -x $(hostname) \
+           checkpointer
+  else
+    echoErr "Maximum of ${CHECKPOINTER_MAX_ERRORS} allowed, exiting .."
+    exit 1
+  fi
+}
+
+incrementerror() {
+  if ! [[ -f "${SLURM_SUBMIT_DIR}/.checkpointer_errors_${PREVJOBID}" ]]; then
+    echo "1" > "${SLURM_SUBMIT_DIR}/.checkpointer_errors_${PREVJOBID}"
+  else
+    CHECKPOINTER_ERROR_COUNT=$(cat "${SLURM_SUBMIT_DIR}/.checkpointer_errors_${PREVJOBID}")
+    CHECKPOINTER_ERROR_COUNT=+1
+    echo ${CHECKPOINTER_ERROR_COUNT} > "${SLURM_SUBMIT_DIR}/.checkpointer_errors_${PREVJOBID}"
+  fi
+}
+
+
+if [[ -z ${CHECKPOINTER_MAX_ERRORS} ]]; then
+  CHECKPOINTER_MAX_ERRORS=3
+fi
+
+if [[ -z ${CHECKPOINTER_DIR} ]]; then 
+  echoErr "CHECKPOINTER_DIR not set. This script needs to be invoked from 'checkpointer', not directly"
+  exit 1
+fi 
+
+if [[ ${SLURM_JOB_NAME} =~ "+CRrestore+" ]]; then
+  # ********** Restoring checkpoint image ***************
+  FULLJOBNAME=${SLURM_JOB_NAME}
+  FIRSTJOBID=$(echo ${SLURM_JOB_NAME} | cut -d'+' -f3)
+  PREVJOBID=$(echo ${SLURM_JOB_NAME} | cut -d'+' -f4)
+  CHECKPOINTER_PROCESS=$(echo ${SLURM_JOB_NAME} | cut -d'+' -f5)
+  #echoErr "SLURM_JOB_NAME:$SLURM_JOB_NAME"
+  #echoErr "PREVJOBID:$PREVJOBID"
+  #echoErr "CHECKPOINTER_PROCESS: ${CHECKPOINTER_PROCESS}"
+  cd ${CHECKPOINTER_DIR}/${PREVJOBID}
+  WAITHERE=1
+  echoErr "Waiting for checkpoint dump of previous job ${PREVJOBID} to finish ..."  
+  while [[ ${WAITHERE} -eq 1 ]]; do
+    # waiting for checkpoint to finish, check that files have not been modified last 10 sec
+    if [[ -z $(find . -type f -newermt '-10 seconds' 2>/dev/null) ]]; then
+      WAITHERE=0
+    else
+      sleep 5
+    fi
+  done
+  if ! [[ -f stats-dump ]]; then
+    echoErr "Previous checkpoint dump not complete, exiting !"
+    exit 1
+  fi
+  echoErr "Restoring checkpointed job ${PREVJOBID} ..."
+  ${CHECKPOINTER_LIBDIR}/checkpointer-suid restore
+  CREXIT=$?
+  #CRPID=$!
+  if [[ "${CREXIT}" == "0" ]]; then  
+    echoErr "Checkpoint restore finished. Exit code: ${CREXIT} ..."
+    SLURM_JOB_NAME=$(echo $SLURM_JOB_NAME | cut -d'+' -f1)
+    sleep 10
+    wait_dump_and_submit
+  else
+    echoErr "Checkpoint restore failed. Exit code: ${CREXIT} ..."
+    incrementerror
+    resubmit
+  fi
+  CREXIT=$?
+  exit ${CREXIT}
+fi
+
+if [[ "${SLURM_JOB_NUM_NODES}" != "1" ]]; then
+  echoErr "checkpointer works only with single node jobs"
+  exit 
+fi
+
+# get child proces of slurmstepd
+#pstree -p ${SLURM_TASK_PID}
+FIRSTJOBID=${SLURM_JOB_ID}
+CHECKPOINTER_PROCESS=$(ps -o pid= --ppid ${SLURM_TASK_PID})
+#echoErr "CHECKPOINTER_PROCESS: ${CHECKPOINTER_PROCESS}"
+
+# first iteration dump 
+wait_dump_and_submit
+

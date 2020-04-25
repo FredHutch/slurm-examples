@@ -1,0 +1,6 @@
+#! /bin/bash
+
+echo -e "\nThis tool has not been implemented yet."
+echo "Please run checkpointer inside a Slurm job."
+
+
