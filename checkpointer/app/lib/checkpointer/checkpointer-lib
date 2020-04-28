@@ -4,6 +4,7 @@
 TOOLS="criu curl jq"
 TOOLBOXURL="https://toolbox.fhcrc.org/json/user2pi.json"
 CHECKPOINTER_ROOT="/fh/scratch/delete10"
+CHECKPOINTER_SCRATCH_ROOT='/tmp/petersen'  #${TMPDIR}             # or "/loc/scratch"
 
 ### user definded functions ###
 echoErr(){
@@ -50,3 +51,13 @@ checkEnvironment() {
     fi
   fi
 }
+
+copyTool() {
+  # use cp if rclone does not exist
+  if hash rclone 2>/dev/null; then
+    rclone --stats-log-level NOTICE copy "$1" "$2"
+  else
+    cp -r "$1/*" "$2"
+  fi
+}
+
