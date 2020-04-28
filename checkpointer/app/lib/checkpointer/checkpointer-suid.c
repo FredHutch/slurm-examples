@@ -27,7 +27,8 @@ void exec_criu(char *op,char *pid)
    if (pid)
       execl(CRIU,CRIU,op,"--shell-job","-t",pid,(char *)NULL);
    else
-      execl(CRIU,CRIU,op,"--shell-job",pid);
+      execl(CRIU,CRIU,op,"--shell-job","--restore-detached",
+         "--restore-sibling",(char *)NULL);
 
    fprintf(stderr,"Error: failed to exec %s!\n",CRIU);
 }
