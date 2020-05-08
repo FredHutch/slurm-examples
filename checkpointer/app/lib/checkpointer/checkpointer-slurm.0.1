@@ -1,0 +1,175 @@
+#! /bin/bash
+
+source ${CHECKPOINTER_LIBDIR}/checkpointer-lib
+
+wait_dump_and_submit() {
+  # wait for end of wall time, dump pid CHECKPOINTER_PROCESS and 
+  # submit a new batch job to bring the process back on a different node
+  local STOPME=0
+  WALLTIME=$(squeue --noheader -o %l -j $SLURM_JOB_ID)
+  cd "${SLURM_SUBMIT_DIR}"
+  mkdir -p "${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/local-scratch/"
+  while [[ ${STOPME} -eq 0 ]]; do
+    TIMELEFT=$(squeue --noheader -o %L -j $SLURM_JOB_ID)
+    if [[ "${TIMELEFT}" == "INVALID" ]]; then
+      STOPME=1
+    fi
+    ps -p ${CHECKPOINTER_PROCESS} > /dev/null || STOPME=1
+    echoErr "Time left: ${TIMELEFT}"
+    if [[ ${#TIMELEFT} -eq 4 && "${TIMELEFT:1:1}" == ":" && ${STOPME} -eq 0 ]]; then
+      # less than 9:59 min left on job ..... so checkpoint now!!
+      if [[ -z ${PREVJOBID} ]]; then  
+	# this is the very first checkpoint and this workaround is needed because 
+        # the checkpoint tool takes down this control script with the compute process 
+        # (not sure why) when run for the first time for any given job so we need to 
+	# copy out data from local scratch before checkpointing and to avoid data 
+        # inconsistencies we need to freeze the process using SIGSTOP
+	echoErr "Sending SIGSTOP to first process .."
+        kill -SIGSTOP ${CHECKPOINTER_PROCESS}
+        echoErr "Uploading Scratch to ${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/local-scratch"
+        copyTool "${CHECKPOINTER_SCRATCH_ROOT}" "${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/local-scratch"	
+      fi
+      echoErr "Submitting new Slurm job to restore checkpoint ..."
+      slurm_submit ${SLURM_JOB_ID}
+      cd ${CHECKPOINTER_DIR}/${SLURM_JOB_ID}
+      echoErr "Dumping checkpoint for pid ${CHECKPOINTER_PROCESS} to "
+      echoErr "${CHECKPOINTER_DIR}/${SLURM_JOB_ID} ..."
+      ${CHECKPOINTER_LIBDIR}/checkpointer-suid dump ${CHECKPOINTER_PROCESS}
+      CREXIT=$?
+      echoErr "Dump done, Exit code: ${CREXIT}"
+      if [[ -n ${PREVJOBID} ]]; then
+        echoErr "Uploading Scratch to ${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/local-scratch"
+        copyTool "${CHECKPOINTER_SCRATCH_ROOT}" "${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/local-scratch"
+      fi
+      #echoErr "listing ... ${CHECKPOINTER_SCRATCH_ROOT}"
+      #ls -l "${CHECKPOINTER_SCRATCH_ROOT}"
+      ############### Temp clean
+      rm -f "${CHECKPOINTER_SCRATCH_ROOT}/*"
+      ###############
+      cd "${SLURM_SUBMIT_DIR}"
+      exit ${CREXIT}
+    fi
+    if [[ ${STOPME} -eq 1 ]]; then
+      if [[ -d "${RESULT_FOLDER}" ]]; then
+        copyTool "${CHECKPOINTER_SCRATCH_ROOT}" "${RESULT_FOLDER}"
+        echoErr "Final result copied to ${RESULT_FOLDER}"
+      else
+        copyTool "${CHECKPOINTER_SCRATCH_ROOT}" "${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/local-scratch"
+        echoErr "Final result copied to ${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/local-scratch"
+      fi
+    fi
+    sleep 5
+  done
+}
+
+slurm_submit() {
+  local MYJOBID=$1
+  sbatch -J "${SLURM_JOB_NAME}+CRrestore+${FIRSTJOBID}+${MYJOBID}+${CHECKPOINTER_PROCESS}" \
+         -c ${SLURM_CPUS_ON_NODE} -A "${SLURM_JOB_ACCOUNT}" -M "${SLURM_CLUSTER_NAME}" \
+         -p ${SLURM_JOB_PARTITION} -t ${WALLTIME} -x $(hostname) \
+          checkpointer
+}
+
+resubmit() {
+  cd "${SLURM_SUBMIT_DIR}"
+  if [[ ${CHECKPOINTER_ERROR_COUNT} -le ${CHECKPOINTER_MAX_ERRORS} ]]; then
+    echoErr "${CHECKPOINTER_ERROR_COUNT}/${CHECKPOINTER_MAX_ERRORS} checkpoint restore errors ..."
+    WALLTIME=$(squeue --noheader -o %l -j $SLURM_JOB_ID)
+    echoErr "Resubmitting job ${PREVJOBID}"
+    slurm_submit ${PREVJOBID}
+  else
+    echoErr "Maximum of ${CHECKPOINTER_MAX_ERRORS} checkpoint restore errors allowed, exiting .."
+    exit 1
+  fi
+}
+
+incrementerror() {
+  if ! [[ -f "${SLURM_SUBMIT_DIR}/.checkpointer_errors_${PREVJOBID}" ]]; then
+    echo "1" > "${SLURM_SUBMIT_DIR}/.checkpointer_errors_${PREVJOBID}"
+    CHECKPOINTER_ERROR_COUNT=1
+  else
+    CHECKPOINTER_ERROR_COUNT=$(cat "${SLURM_SUBMIT_DIR}/.checkpointer_errors_${PREVJOBID}")
+    ((CHECKPOINTER_ERROR_COUNT+=1))
+    echo ${CHECKPOINTER_ERROR_COUNT} > "${SLURM_SUBMIT_DIR}/.checkpointer_errors_${PREVJOBID}"
+  fi
+}
+
+
+if [[ -z ${CHECKPOINTER_MAX_ERRORS} ]]; then
+  CHECKPOINTER_MAX_ERRORS=3
+fi
+
+if [[ -z ${CHECKPOINTER_DIR} ]]; then 
+  echoErr "CHECKPOINTER_DIR not set. This script needs to be invoked from 'checkpointer', not directly"
+  exit 1
+fi
+
+######
+mkdir -p /tmp/petersen
+#####
+
+
+if [[ ${SLURM_JOB_NAME} =~ "+CRrestore+" ]]; then
+  # ********** Restoring checkpoint image ***************
+  FULLJOBNAME=${SLURM_JOB_NAME}
+  FIRSTJOBID=$(echo ${SLURM_JOB_NAME} | cut -d'+' -f3)
+  PREVJOBID=$(echo ${SLURM_JOB_NAME} | cut -d'+' -f4)
+  CHECKPOINTER_PROCESS=$(echo ${SLURM_JOB_NAME} | cut -d'+' -f5)
+  #echoErr "SLURM_JOB_NAME:$SLURM_JOB_NAME"
+  #echoErr "PREVJOBID:$PREVJOBID"
+  #echoErr "CHECKPOINTER_PROCESS: ${CHECKPOINTER_PROCESS}"
+  cd ${CHECKPOINTER_DIR}/${PREVJOBID}
+  echoErr "Downloading Scratch to ${CHECKPOINTER_SCRATCH_ROOT} ..."
+  copyTool "${CHECKPOINTER_DIR}/${PREVJOBID}/local-scratch" "${CHECKPOINTER_SCRATCH_ROOT}"
+  WAITHERE=1
+  echoErr "Waiting for checkpoint dump of previous job ${PREVJOBID} to finish ..."  
+  while [[ ${WAITHERE} -eq 1 ]]; do
+    # waiting for checkpoint to finish, check that files have not been modified last 10 sec
+    if [[ -z $(find . -type f -newermt '-10 seconds' 2>/dev/null) ]]; then
+      WAITHERE=0
+    else
+      sleep 3
+    fi
+  done
+  if ! [[ -f stats-dump ]]; then
+    echoErr "Previous checkpoint dump not complete, exiting !"
+    exit 1
+  fi
+  echoErr "Restoring checkpointed job ${PREVJOBID} ..."
+  ${CHECKPOINTER_LIBDIR}/checkpointer-suid restore
+  CREXIT=$?
+  #CREXIT=1 # simulate a restore error
+  #CRPID=$!
+  SLURM_JOB_NAME=$(echo $SLURM_JOB_NAME | cut -d'+' -f1)
+  if [[ "${CREXIT}" == "0" ]]; then  
+    echoErr "Checkpoint restore finished. Exit code: ${CREXIT} ..."
+    sleep 3
+    if [[ ${PREVJOBID} == ${FIRSTJOBID} ]]; then
+      echoErr "waking up previously stopped process .."
+      kill -SIGCONT ${CHECKPOINTER_PROCESS}
+      sleep 3
+    fi
+    wait_dump_and_submit
+  else
+    echoErr "Checkpoint restore failed. Exit code: ${CREXIT}. Resubmitting job ..."
+    incrementerror
+    resubmit
+  fi
+  CREXIT=$?
+  exit ${CREXIT}
+fi
+
+if [[ "${SLURM_JOB_NUM_NODES}" != "1" ]]; then
+  echoErr "checkpointer works only with single node jobs"
+  exit 
+fi
+
+# get child proces of slurmstepd
+#pstree -p ${SLURM_TASK_PID}
+sleep 1
+FIRSTJOBID=${SLURM_JOB_ID}
+CHECKPOINTER_PROCESS=$(ps -o pid= --ppid ${SLURM_TASK_PID})
+
+# first iteration dump 
+wait_dump_and_submit
+

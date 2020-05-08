@@ -1,0 +1,46 @@
+#! /bin/bash
+
+# wrapper script to facilitate CRIU checkpointing on an HPC cluster
+
+export CHECKPOINTER_LIBDIR=/app/lib/checkpointer
+source ${CHECKPOINTER_LIBDIR}/checkpointer-lib
+
+checkToolDependencies
+
+export ME=$(whoami)
+
+# set TOOLBOXURL="" in checkpointer-lib outside of FredHutch
+if [[ -n ${TOOLBOXURL} ]]; then
+  export PI=$(curl -s ${TOOLBOXURL} | jq -r ".$ME")
+  if [[ ${PI} =~ "div-" || -z ${PI} ]]; then
+    export PI="_HDC/SciComp"
+  fi
+else
+  export PI='all'
+fi
+
+if [[ -z $CHECKPOINTER_DIR ]]; then
+  export CHECKPOINTER_DIR=${CHECKPOINTER_ROOT}/${PI}/.checkpointer/${ME}
+fi  
+mkdir -p $CHECKPOINTER_DIR
+
+if ! [[ -d $CHECKPOINTER_DIR ]]; then
+  echoErr "Folder ${CHECKPOINTER_DIR} does not exist"
+  exit 1
+fi
+
+#### select the checkpointing tool 
+if [[ -n ${SLURM_JOB_ID} ]]; then
+  #if [[ -n ${SLURM_RESTART_COUNT} ]]; then
+  if [[ ${SLURM_JOB_NAME} =~ "+CRrestore+" ]]; then
+    ${CHECKPOINTER_LIBDIR}/checkpointer-slurm $@ 
+  else
+    # spawn a monitoring process
+    ${CHECKPOINTER_LIBDIR}/checkpointer-slurm $@ & 
+  fi
+else
+  ${CHECKPOINTER_LIBDIR}/checkpointer-generic $@ &
+fi
+
+exit
+
