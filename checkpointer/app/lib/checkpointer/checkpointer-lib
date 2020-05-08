@@ -61,3 +61,58 @@ copyTool() {
   fi
 }
 
+slurmtime_to_sec() {
+  # convert slurm time to seconds
+  local MYLIBDIR=$(dirname ${BASH_SOURCE[0]})
+  ${MYLIBDIR}/slurmtime2seconds $1
+}
+
+# Thanks folks from NERSC
+# but this one has some bugs, using the python version below
+dhms_to_sec () 
+{
+  local usage="$0 D:H:M:S"$'\n'
+  usage+='print number of seconds corresponding to a timespan'$'\n'
+  usage+='copes with leading negative sign'$'\n'
+  usage+='accepted formats are:'$'\n'
+  usage+='  [-][[[D:]H:]M:]S'$'\n'
+  usage+='  [-][[[D-]H:]M:]S'$'\n'
+  usage+='Examples:'$'\n'
+  usage+='  1-12:00:00     1 day 12 hours'$'\n'
+  usage+='  2:00:01:00     2 days and 1 minute'$'\n'
+  usage+='  -30:00         negative half an hour'$'\n'
+  if [[ $# -ne 1 || $1 =~ ^-h ]] ; then
+    echo "$usage"
+    return 1
+  else
+    local total=0
+    local -a mult=(1 60 3600 86400)
+    # deal with leading -ive sign and turns day separator to :
+    local a=${1:0:1}
+    local b=${1:1}
+    local IFS=':'
+    local -a val=(${a}${b/-/:})
+    unset IFS
+    # leading "-" sign will now be ":"
+    if [[ ${val[0]} =~ ^(-?)([0-9]+)$ ]]; then
+      # deal with negatives:
+      local sign=${BASH_REMATCH[1]}
+      val[0]=${BASH_REMATCH[2]}
+      local i=${#val[@]}
+      local j=0
+      (( i > 4 )) && return 1
+      while (( i > 0 )); do
+        let i-=1
+        let total+=$(( ${val[$i]/#0}*${mult[$j]} ))
+        let j+=1
+      done
+      #_retstr=
+      printf "%s\n" "${sign}${total}"
+      return 0
+    fi
+  fi
+  echo "$usage"
+  return 1
+}
+
+

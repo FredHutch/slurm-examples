@@ -1,0 +1,58 @@
+#! /usr/bin/python3
+
+# from https://github.com/rakesharya21/NanoGen/blob/master/ng_venv/lib/python3.5/site-packages/pymatgen/io/abinit/qutils.py
+
+import sys
+
+def slurm_parse_timestr(s):
+    """
+    A slurm time parser. Accepts a string in one the following forms:
+        # "days-hours",
+        # "days-hours:minutes",
+        # "days-hours:minutes:seconds".
+        # "minutes",
+        # "minutes:seconds",
+        # "hours:minutes:seconds",
+    Returns:
+        Time in seconds.
+    Raises:
+        `ValueError` if string is not valid.
+    """
+    days, hours, minutes, seconds = 0, 0, 0, 0
+
+    if '-' in s:
+        # "days-hours",
+        # "days-hours:minutes",
+        # "days-hours:minutes:seconds".
+        days, s = s.split("-")
+        days = int(days)
+
+        if ':' not in s:
+            hours = int(float(s))
+        elif s.count(':') == 1:
+            hours, minutes = map(int, s.split(':'))
+        elif s.count(':') == 2:
+            hours, minutes, seconds = map(int, s.split(':'))
+        else:
+            raise ValueError("More that 2 ':' in string!")
+
+    else:
+        # "minutes",
+        # "minutes:seconds",
+        # "hours:minutes:seconds",
+        if ':' not in s:
+            minutes = int(float(s))
+        elif s.count(':') == 1:
+            minutes, seconds = map(int, s.split(':'))
+        elif s.count(':') == 2:
+            hours, minutes, seconds = map(int, s.split(':'))
+        else:
+            raise ValueError("More than 2 ':' in string!")
+
+    return days*24 + hours*3600 + minutes*60 + seconds
+
+if len(sys.argv) >= 2:
+    print(slurm_parse_timestr(sys.argv[1]))
+else:
+    print(0)
+
