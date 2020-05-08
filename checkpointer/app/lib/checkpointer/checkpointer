@@ -31,8 +31,8 @@ fi
 
 #### select the checkpointing tool 
 if [[ -n ${SLURM_JOB_ID} ]]; then
-  #if [[ -n ${SLURM_RESTART_COUNT} ]]; then
-  if [[ ${SLURM_JOB_NAME} =~ "+CRrestore+" ]]; then
+  if [[ -n ${SLURM_RESTART_COUNT} ]]; then
+  #if [[ ${SLURM_JOB_NAME} =~ "+CRrestore+" ]]; then
     ${CHECKPOINTER_LIBDIR}/checkpointer-slurm $@ 
   else
     # spawn a monitoring process
