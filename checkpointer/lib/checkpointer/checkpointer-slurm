@@ -11,7 +11,7 @@ wait_loop() {
   mkdir -p "${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT}/local-scratch/"
   while [[ ${STOPME} -eq 0 ]]; do
     TIMELEFT=$(squeue --noheader -o %L -j $SLURM_JOB_ID)
-    if [[ ${#TIMELEFT} -eq 4 && "${TIMELEFT:1:1}" == ":" ]];
+    if [[ ${#TIMELEFT} -eq 4 && "${TIMELEFT:1:1}" == ":" ]]; then 
       # only 10 min wall time left, dump now
       dump_requeue
     fi
