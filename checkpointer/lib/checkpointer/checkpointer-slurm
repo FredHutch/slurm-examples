@@ -1,0 +1,179 @@
+#! /bin/bash
+
+source ${CHECKPOINTER_LIBDIR}/checkpointer-lib
+
+wait_loop() {
+  # wait for time in SLURM_CHECKPOINT to pass, dump pid CHECKPOINTER_PROCESS and 
+  # requeue the job to bring the process back on a different node
+  local STOPME=0
+  WALLTIME=$(squeue --noheader -o %l -j $SLURM_JOB_ID)
+  cd "${SLURM_SUBMIT_DIR}"
+  mkdir -p "${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT}/local-scratch/"
+  while [[ ${STOPME} -eq 0 ]]; do
+    TIMELEFT=$(squeue --noheader -o %L -j $SLURM_JOB_ID)
+    if [[ ${#TIMELEFT} -eq 4 && "${TIMELEFT:1:1}" == ":" ]];
+      # only 10 min wall time left, dump now
+      dump_requeue
+    fi
+    if [[ "${TIMELEFT}" == "INVALID" ]]; then
+      # wall time is up, dump now 
+      dump_requeue
+    fi
+    RUNTIME=$(squeue --noheader -o %M -j $SLURM_JOB_ID)
+    RUNTIME_SECS=$(slurmtime_to_sec ${RUNTIME})
+    ps -p ${CHECKPOINTER_PROCESS} > /dev/null || STOPME=1
+    debug_info
+    if [[ ${RUNTIME_SECS} -ge ${SLURM_CHECKPOINT_SECS} ]]; then
+      dump_requeue
+    fi
+    if [[ ${STOPME} -eq 1 ]]; then
+      if [[ -d "${RESULT_FOLDER}" ]]; then
+        copyTool "${CHECKPOINTER_SCRATCH_ROOT}" "${RESULT_FOLDER}"
+        echoErr "Final result copied to ${RESULT_FOLDER}"
+      else
+        copyTool "${CHECKPOINTER_SCRATCH_ROOT}" \
+                 "${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT}/local-scratch"
+        echoErr "Final result copied to \
+                 ${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT}/local-scratch"
+      fi
+    fi
+    sleep 5
+  done
+}
+
+
+dump_requeue() {
+  cd ${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT}
+  echoErr "Dumping checkpoint for pid ${CHECKPOINTER_PROCESS} to "
+  echoErr "${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT}"
+  ${CHECKPOINTER_LIBDIR}/checkpointer-suid dump ${CHECKPOINTER_PROCESS}
+  CREXIT=$?
+  echoErr "Dump done, Exit code: ${CREXIT}"
+  echoErr "Uploading Scratch to \
+          ${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT}/local-scratch"
+  copyTool "${CHECKPOINTER_SCRATCH_ROOT}" \
+           "${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT}/local-scratch"
+  echoErr "Requeueing ... ${SLURM_JOB_ID}"
+  scontrol requeue ${SLURM_JOB_ID}
+
+  cd "${SLURM_SUBMIT_DIR}"
+  exit ${CREXIT}
+}
+
+
+debug_info() {
+  if [[ -z ${CHECKPOINTER_DEBUG} || ${CHECKPOINTER_DEBUG} -eq 0 ]]; then
+    return 0
+  fi
+  echoErr "Wall time: ${WALLTIME}"
+  echoErr "Time left: ${TIMELEFT}"
+  echoErr "Runtime: ${RUNTIME}"
+  echoErr "Runtime secs: ${RUNTIME_SECS}"
+  echoErr "Checkpoint secs: ${SLURM_CHECKPOINT_SECS}"
+  echoErr "Stopme: ${STOPME}"
+  echoErr "Checkpointed Process: ${CHECKPOINTER_PROCESS}"
+}
+
+error_requeue() {
+  cd "${SLURM_SUBMIT_DIR}"
+  if [[ ${CHECKPOINTER_ERROR_COUNT} -le ${CHECKPOINTER_MAX_ERRORS} ]]; then
+    echoErr "${CHECKPOINTER_ERROR_COUNT}/${CHECKPOINTER_MAX_ERRORS} checkpoint restore errors ..."
+    echoErr "Requeueing job ${SLURM_JOB_ID}"
+    scontrol requeue ${SLURM_JOB_ID}
+  else
+    echoErr "Maximum of ${CHECKPOINTER_MAX_ERRORS} checkpoint restore errors allowed, exiting .."
+    exit 1
+  fi
+}
+
+increment_error() {
+  if ! [[ -f "${SLURM_SUBMIT_DIR}/.checkpointer_errors_${SLURM_JOB_ID}" ]]; then
+    echo "1" > "${SLURM_SUBMIT_DIR}/.checkpointer_errors_${SLURM_JOB_ID}"
+    CHECKPOINTER_ERROR_COUNT=1
+  else
+    CHECKPOINTER_ERROR_COUNT=$(cat "${SLURM_SUBMIT_DIR}/.checkpointer_errors_${SLURM_JOB_ID}")
+    ((CHECKPOINTER_ERROR_COUNT+=1))
+    echo ${CHECKPOINTER_ERROR_COUNT} > "${SLURM_SUBMIT_DIR}/.checkpointer_errors_${SLURM_JOB_ID}"
+  fi
+}
+
+
+if [[ -z ${CHECKPOINTER_MAX_ERRORS} ]]; then
+  CHECKPOINTER_MAX_ERRORS=3
+fi
+
+if [[ -z ${CHECKPOINTER_DIR} ]]; then 
+  echoErr "CHECKPOINTER_DIR not set. This script needs to be invoked from 'checkpointer', not directly"
+  exit 1
+fi
+
+WALLTIME=$(squeue --noheader -o %l -j $SLURM_JOB_ID)
+if [[ -z ${SLURM_CHECKPOINT} ]]; then
+  SLURM_CHECKPOINT=${WALLTIME}
+fi 
+SLURM_CHECKPOINT_SECS=$(slurmtime_to_sec ${SLURM_CHECKPOINT})
+
+echoErr "#### ****************************** #######"
+echoErr "SLURM_RESTART_COUNT: ${SLURM_RESTART_COUNT}"
+echoErr "SLURMD_NODENAME: ${SLURMD_NODENAME}" 
+
+CHECK_COUNT=0
+if [[ -n ${SLURM_RESTART_COUNT} ]]; then
+  CHECK_COUNT=${SLURM_RESTART_COUNT}
+  CHECK_COUNT_PREV=$((${CHECK_COUNT}-1))
+  # ********** Restoring checkpoint image ***************
+  cd ${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT_PREV}
+  f=$(ls core*.img)
+  CHECKPOINTER_PROCESS=${f:5:-4}
+  echoErr "Downloading Scratch to ${CHECKPOINTER_SCRATCH_ROOT} ..."
+  copyTool "${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT_PREV}/local-scratch" \
+           "${CHECKPOINTER_SCRATCH_ROOT}"
+  WAITHERE=1
+  echoErr "Waiting for previous checkpoint dump ${SLURM_JOB_ID}/${CHECK_COUNT_PREV}/ to finish ..." 
+  while [[ ${WAITHERE} -eq 1 ]]; do
+    # waiting for checkpoint to finish, check that files have not been modified last 10 sec
+    if [[ -z $(find . -type f -newermt '-10 seconds' 2>/dev/null) ]]; then
+      WAITHERE=0
+    else
+      sleep 3
+    fi
+  done
+  if ! [[ -f stats-dump ]]; then
+    echoErr "Previous checkpoint dump not complete, exiting !"
+    exit 1
+  fi
+  echoErr "Restoring checkpointed job ${SLURM_JOB_ID} ..."
+  ${CHECKPOINTER_LIBDIR}/checkpointer-suid restore
+  CREXIT=$?
+  #CREXIT=1 # simulate a restore error
+  #CRPID=$!
+  if [[ "${CREXIT}" == "0" ]]; then  
+    echoErr "Checkpoint restore finished. Exit code: ${CREXIT} ..."
+    sleep 3
+    wait_loop
+  else
+    echoErr "Checkpoint restore failed. Exit code: ${CREXIT}. Resubmitting job ..."
+    increment_error
+    error_requeue
+  fi
+  CREXIT=$?
+  exit ${CREXIT}
+fi
+
+if [[ "${SLURM_JOB_NUM_NODES}" != "1" ]]; then
+  echoErr "checkpointer works only with single node jobs"
+  exit 
+fi
+
+CHECKPOINTER_PROCESS=$(ps -o pid= --ppid ${SLURM_TASK_PID})
+if [[ -z ${CHECKPOINTER_PROCESS} ]]; then
+  echoErr "no script submitted in job"
+  exit 1
+fi
+
+# first iteration dump after 60sec to confirm everthing works
+if [[ ${SLURM_CHECKPOINT_SECS} -gt 60 ]]; then  
+  SLURM_CHECKPOINT_SECS=60
+fi
+wait_loop
+echoErr "For some reason this is exiting"

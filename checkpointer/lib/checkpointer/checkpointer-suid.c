@@ -25,7 +25,7 @@ uid_t uid_from_pid(char *pid)
 void exec_criu(char *op,char *pid)
 {
    if (pid)
-      execl(CRIU,CRIU,op,"--shell-job","-t",pid,(char *)NULL);
+      execl(CRIU,CRIU,op,"--shell-job","--leave-stopped","-t",pid,(char *)NULL);
    else
       execl(CRIU,CRIU,op,"--shell-job","--restore-detached",
          "--restore-sibling",(char *)NULL);

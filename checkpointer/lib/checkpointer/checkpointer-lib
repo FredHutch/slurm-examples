@@ -1,0 +1,124 @@
+#! /bin/bash
+
+### global variables 
+TOOLS="criu curl jq"
+CHECKPOINTER_SCRATCH_ROOT="${TMPDIR}" # or something like "/loc/scratch" 
+
+### user definded functions ###
+echoErr(){
+  # echo to stderr instead of stdout
+  echo -e "$@" 1>&2
+}
+
+pathExist(){
+  if ! [[ -e $1 ]]; then
+    echoErr "Error: path '$1' does not exist\n"
+    exit
+  fi
+}
+
+
+bootstrap_vars() {
+  local MYLIBDIR=$(dirname ${BASH_SOURCE[0]})
+  if ! [[ -w "${MYLIBDIR}" ]]; then
+    echoErr "Trying to create file 'checkpointer-vars' but ${MYLIBDIR} is not writable. Run this as root?"
+    exit 0 
+  fi
+  echo '# *** variables for checkpointer tool ***' > "${MYLIBDIR}/checkpointer-vars"
+  echo '#' >> "${MYLIBDIR}/checkpointer-vars"
+  echo '# Set the root folder for dumping checkpoints. Persistent network scratch accessible from all nodes.' >> "${MYLIBDIR}/checkpointer-vars"
+  echo '#CHECKPOINTER_ROOT="/scratch"' >> "${MYLIBDIR}/checkpointer-vars"
+  echo '#' >> "${MYLIBDIR}/checkpointer-vars"
+  echo '# This is the root of node local job scratch folder assigned to the user. TMPDIR by default' >> "${MYLIBDIR}/checkpointer-vars"
+  echo 'CHECKPOINTER_SCRATCH_ROOT="${TMPDIR}" # or something like "/loc/scratch"' >> "${MYLIBDIR}/checkpointer-vars"
+  echo '#' >> "${MYLIBDIR}/checkpointer-vars"
+  echo '# This is likely only relevant at Fred Hutch to map a user to a PI' >> "${MYLIBDIR}/checkpointer-vars"
+  echo '#TOOLBOXURL="https://toolbox.fhcrc.org/json/user2pi.json"' >> "${MYLIBDIR}/checkpointer-vars"
+  echo '#' >> "${MYLIBDIR}/checkpointer-vars"
+  echo '# A little more debugging info in slurm output files' >> "${MYLIBDIR}/checkpointer-vars"   
+  echo '#CHECKPOINTER_DEBUG=1' >> "${MYLIBDIR}/checkpointer-vars"
+  echo '#' >> "${MYLIBDIR}/checkpointer-vars"
+  echo "Successfully wrote variables to file ${MYLIBDIR}/checkpointer-vars. Please modify this config file."
+  exit 0
+}
+
+checkToolDependencies() {
+  local doexit=0
+  for t in $TOOLS; do 
+    if ! hash $t 2>/dev/null; then
+      echoErr " \"$t\" is not installed, please install and try again !"
+      doexit=1
+    fi
+  done
+  if [[ $doexit -eq 1 ]]; then
+    exit
+  fi
+}
+
+validateCheckPointerRoot() {
+  if [[ -z ${CHECKPOINTER_ROOT} ]]; then
+    echoErr "variable CHECKPOINTER_ROOT is not set. Please check file checkpointer-vars" 
+    exit 1
+  fi
+  if ! [[ -d ${CHECKPOINTER_ROOT} ]]; then
+    echoErr "Directory CHECKPOINTER_ROOT ${CHECKPOINTER_ROOT} does not exist. Please check file checkpointer-vars"
+    exit 1
+  fi
+}
+
+getCheckPointerDir() {
+  ME=$(whoami)
+  # set TOOLBOXURL="" in checkpointer-lib outside of FredHutch
+  if [[ -n ${TOOLBOXURL} ]]; then
+    PI=$(curl -s ${TOOLBOXURL} | jq -r ".${ME}")
+    if [[ ${PI} =~ "div-" || -z ${PI} ]]; then
+      export PI="_HDC/SciComp"
+    fi
+  else
+    export PI='all'
+  fi
+  if [[ -z $CHECKPOINTER_DIR ]]; then
+    export CHECKPOINTER_DIR=${CHECKPOINTER_ROOT}/${PI}/.checkpointer/${ME}
+  fi
+  mkdir -p $CHECKPOINTER_DIR
+  echo ${CHECKPOINTER_DIR}
+}
+
+
+checkEnvironment() {
+  if [[ -z $CHECKPOINTER_DIR ]]; then
+    if [[ ${PI} == "" || ${PI} =~ "div-" ]]; then
+      echoErr ""
+      echoErr "according to our database you are not reporting to a PI"
+      echoErr "Please set envionment variable CHECKPOINTER_DIR "
+      echoErr "which is a folder somewhere under ${CHECKPOINTER_ROOT},"
+      echoErr "for example run something like this to set CHECKPOINTER_DIR permanently:"
+      echoErr "echo \"export CHECKPOINTER_DIR=${CHECKPOINTER_ROOT}/your/folder\" >> ~/.bashrc"
+    fi
+    groups | grep -wq "${PI}_grp"
+    if [[ $? -ne 0  ]]; then
+      echoErr ""
+      echoErr "you are not yet member of security group ${PI}_grp !"
+      echoErr "Please send a ticket, ask to be added to this group "
+      echoErr "and CC your PI or their delegate !"
+    fi
+  fi
+}
+
+copyTool() {
+  # use cp if rclone does not exist
+  if hash rclone 2>/dev/null; then
+    rclone --stats-log-level NOTICE copy "$1" "$2"
+  else
+    cp -r "$1/*" "$2"
+  fi
+}
+
+slurmtime_to_sec() {
+  # convert slurm time to seconds
+  local MYLIBDIR=$(dirname ${BASH_SOURCE[0]})
+  ${MYLIBDIR}/slurmtime2seconds $1
+}
+
+
+

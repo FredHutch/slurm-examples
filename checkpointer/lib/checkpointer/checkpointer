@@ -5,37 +5,31 @@
 export CHECKPOINTER_LIBDIR=/app/lib/checkpointer
 source ${CHECKPOINTER_LIBDIR}/checkpointer-lib
 
-checkToolDependencies
-
-export ME=$(whoami)
-
-# set TOOLBOXURL="" in checkpointer-lib outside of FredHutch
-if [[ -n ${TOOLBOXURL} ]]; then
-  export PI=$(curl -s ${TOOLBOXURL} | jq -r ".$ME")
-  if [[ ${PI} =~ "div-" || -z ${PI} ]]; then
-    export PI="_HDC/SciComp"
-  fi
+if [[ -f ${CHECKPOINTER_LIBDIR}/checkpointer-vars ]]; then
+  source ${CHECKPOINTER_LIBDIR}/checkpointer-vars
 else
-  export PI='all'
+  bootstrap_vars
 fi
 
-if [[ -z $CHECKPOINTER_DIR ]]; then
-  export CHECKPOINTER_DIR=${CHECKPOINTER_ROOT}/${PI}/.checkpointer/${ME}
-fi  
-mkdir -p $CHECKPOINTER_DIR
-
+checkToolDependencies
+validateCheckPointerRoot
+export CHECKPOINTER_DIR=$(getCheckPointerDir)
 if ! [[ -d $CHECKPOINTER_DIR ]]; then
   echoErr "Folder ${CHECKPOINTER_DIR} does not exist"
   exit 1
 fi
 
+# more detailed check, currently disabled
+#checkEnvironment
+
 #### select the checkpointing tool 
 if [[ -n ${SLURM_JOB_ID} ]]; then
   if [[ -n ${SLURM_RESTART_COUNT} ]]; then
-  #if [[ ${SLURM_JOB_NAME} =~ "+CRrestore+" ]]; then
+    # requeued process 
     ${CHECKPOINTER_LIBDIR}/checkpointer-slurm $@ 
   else
-    # spawn a monitoring process
+    # first start, spawn a monitoring process
+    #echoErr "spawning checkpointer-slurm .. "
     ${CHECKPOINTER_LIBDIR}/checkpointer-slurm $@ & 
   fi
 else
