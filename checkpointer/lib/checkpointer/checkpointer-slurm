@@ -74,6 +74,23 @@ debug_info() {
   echoErr "Checkpointed Process: ${CHECKPOINTER_PROCESS}"
 }
 
+select_checkpoint() {
+  local checkprev=${CHECK_COUNT_PREV}
+  for i in {1..5}; do
+    ((checkprev-=1))
+    echoErr "checking for previous dump ${checkprev} ..."
+    if [[ -f ${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${checkprev}/stats-dump ]]; then
+      CHECK_COUNT_PREV=${checkprev}
+      cd ${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT_PREV}
+      return 0
+    fi
+    if [[ ${checkprev} -le 0 ]]; then
+      echErr "No valid checkpoints found, exiting"
+      exit 1
+    fi
+  done
+}
+
 error_requeue() {
   cd "${SLURM_SUBMIT_DIR}"
   if [[ ${CHECKPOINTER_ERROR_COUNT} -le ${CHECKPOINTER_MAX_ERRORS} ]]; then
@@ -96,6 +113,7 @@ increment_error() {
     echo ${CHECKPOINTER_ERROR_COUNT} > "${SLURM_SUBMIT_DIR}/.checkpointer_errors_${SLURM_JOB_ID}"
   fi
 }
+
 
 
 if [[ -z ${CHECKPOINTER_MAX_ERRORS} ]]; then
@@ -123,11 +141,6 @@ if [[ -n ${SLURM_RESTART_COUNT} ]]; then
   CHECK_COUNT_PREV=$((${CHECK_COUNT}-1))
   # ********** Restoring checkpoint image ***************
   cd ${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT_PREV}
-  f=$(ls core*.img)
-  CHECKPOINTER_PROCESS=${f:5:-4}
-  echoErr "Downloading Scratch to ${CHECKPOINTER_SCRATCH_ROOT} ..."
-  copyTool "${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT_PREV}/local-scratch" \
-           "${CHECKPOINTER_SCRATCH_ROOT}"
   WAITHERE=1
   echoErr "Waiting for previous checkpoint dump ${SLURM_JOB_ID}/${CHECK_COUNT_PREV}/ to finish ..." 
   while [[ ${WAITHERE} -eq 1 ]]; do
@@ -139,17 +152,22 @@ if [[ -n ${SLURM_RESTART_COUNT} ]]; then
     fi
   done
   if ! [[ -f stats-dump ]]; then
-    echoErr "Previous checkpoint dump not complete, exiting !"
-    exit 1
+    echoErr "Previous checkpoint dump not complete, select an older one !"
+    select_checkpoint
   fi
+  echoErr "Downloading Scratch to ${CHECKPOINTER_SCRATCH_ROOT} ..."
+  copyTool "${CHECKPOINTER_DIR}/${SLURM_JOB_ID}/${CHECK_COUNT_PREV}/local-scratch" \
+           "${CHECKPOINTER_SCRATCH_ROOT}"
   echoErr "Restoring checkpointed job ${SLURM_JOB_ID} ..."
   ${CHECKPOINTER_LIBDIR}/checkpointer-suid restore
   CREXIT=$?
   #CREXIT=1 # simulate a restore error
   #CRPID=$!
-  if [[ "${CREXIT}" == "0" ]]; then  
+  if [[ "${CREXIT}" == "0" ]]; then
     echoErr "Checkpoint restore finished. Exit code: ${CREXIT} ..."
     sleep 3
+    f=$(ls core*.img)
+    CHECKPOINTER_PROCESS=${f:5:-4}
     wait_loop
   else
     echoErr "Checkpoint restore failed. Exit code: ${CREXIT}. Resubmitting job ..."
