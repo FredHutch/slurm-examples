@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#SBATCH --mail-user=fred@fredhutch.org
-#SBATCH --mail-type=END
 #SBATCH --array=[1-12]
 #SBATCH --nodes=1
 #SBATCH --output=Rout/par-%J.out
