@@ -6,6 +6,6 @@
 #SBATCH --error=Rout/par-%J.err
 #SBATCH --cpus-per-task=1
 
-ml R/3.4.3-foss-2016b-fh2
+ml fhR/4.0.4-foss-2020b
 
 R CMD BATCH --no-save  R_cluster_example.R Rout/example_slurm${SLURM_ARRAY_TASK_ID}.Rout
