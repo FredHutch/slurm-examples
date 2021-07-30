@@ -1,0 +1,7 @@
+BootStrap: docker
+From: r-base
+
+%post
+R --no-echo -e 'install.packages("devtools", repos="https://cloud.r-project.org/    ")'
+mkdir -p /mnt/data
+
