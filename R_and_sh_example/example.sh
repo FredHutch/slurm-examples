@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --array=[1-12]
+#SBATCH --array=1-12
 #SBATCH --nodes=1
 #SBATCH --output=Rout/par-%J.out
 #SBATCH --error=Rout/par-%J.err
