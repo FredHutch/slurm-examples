@@ -1,5 +1,6 @@
 #!/bin/bash
-#
+#SBATCH -c 1
+#SBATCH --gpus=1
 
 set -e
 
